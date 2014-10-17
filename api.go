@@ -81,7 +81,8 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 
 	cli := &http.Client{}
 
-	resp, err := cli.Get(uriBase(r.URL))
+	r.RequestURI = ""
+	resp, err := cli.Do(r)
 	if err != nil {
 		err = erro.Wrap(err)
 		switch erro.Unwrap(err).(type) {
@@ -93,7 +94,8 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusUnauthorized {
+	if resp.Header.Get(headerTaAuthErr) == "" || resp.StatusCode != http.StatusUnauthorized {
+		// 相手側が TA 認証を必要としていなかったのかもしれない。
 		return copyResponse(resp, w)
 	}
 
