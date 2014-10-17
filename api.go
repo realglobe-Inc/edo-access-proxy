@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -22,6 +23,10 @@ const (
 
 	cookieTaSess = "X-Edo-Ta-Session"
 )
+
+func uriBase(url *url.URL) string {
+	return url.Scheme + "://" + url.Host + url.Path
+}
 
 // Web プロキシ。
 func proxyApi(sys *system, w http.ResponseWriter, r *http.Request) error {
