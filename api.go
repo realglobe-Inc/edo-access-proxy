@@ -43,9 +43,11 @@ func proxyApi(sys *system, w http.ResponseWriter, r *http.Request) error {
 
 	if sess != nil {
 		// セッション確立済み。
+		log.Debug("authenticated session is exist")
 		return forward(sys, w, r, taId, sess)
 	} else {
 		// セッション未確立。
+		log.Debug("session is not exist")
 		return startSession(sys, w, r, taId)
 	}
 }
@@ -66,6 +68,8 @@ func forward(sys *system, w http.ResponseWriter, r *http.Request, taId string, s
 		}
 	}
 	defer resp.Body.Close()
+
+	log.Debug("forwarded")
 
 	if resp.StatusCode == http.StatusUnauthorized && resp.Header.Get(headerTaAuthErr) != "" {
 		// edo-auth で 401 Unauthorized なら、タイミングの問題なので startSession からやり直す。
@@ -94,12 +98,15 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 	}
 	defer resp.Body.Close()
 
+	log.Debug("sent raw request")
+
 	if resp.Header.Get(headerTaAuthErr) == "" || resp.StatusCode != http.StatusUnauthorized {
 		// 相手側が TA 認証を必要としていなかったのかもしれない。
 		return copyResponse(resp, w)
 	}
 
 	// 相手側 TA も認証始めた。
+	log.Debug("authentication started")
 
 	sess, sessToken := parseSession(resp)
 	if sess == nil {
@@ -111,6 +118,7 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 	expiDate := getExpirationDate(sess)
 
 	// 認証用データが揃ってた。
+	log.Debug("authentication data was found")
 
 	priKey, _, err := sys.privateKey(taId, nil)
 	if err != nil {
@@ -120,6 +128,7 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 	}
 
 	// 秘密鍵を用意できた。
+	log.Debug("private key of " + taId + " is exist")
 
 	hashName := r.Header.Get(headerHashFunc)
 	if hashName == "" {
@@ -132,6 +141,7 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 	}
 
 	// 署名できた。
+	log.Debug("signed")
 
 	r.AddCookie(&http.Cookie{Name: cookieTaSess, Value: sess.Value})
 	r.Header.Set(headerTaId, taId)
@@ -150,6 +160,9 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 		}
 	}
 	defer resp.Body.Close()
+
+	// 認証された。
+	log.Debug("authentication finished")
 
 	if resp.Header.Get(headerTaAuthErr) != "" {
 		// セッションを保存。
