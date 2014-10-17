@@ -31,28 +31,27 @@ func uriBase(url *url.URL) string {
 // Web プロキシ。
 func proxyApi(sys *system, w http.ResponseWriter, r *http.Request) error {
 
-	uri := r.URL.Scheme + "://" + r.URL.Host + r.URL.Path
 	taId := r.Header.Get(headerTaId)
 	if taId == "" {
 		taId = sys.taId
 	}
 
-	sess, _, err := sys.session(uri, taId, nil)
+	sess, _, err := sys.session(uriBase(r.URL), taId, nil)
 	if err != nil {
 		return erro.Wrap(err)
 	}
 
 	if sess != nil {
 		// セッション確立済み。
-		return forward(sys, w, r, uri, taId, sess)
+		return forward(sys, w, r, taId, sess)
 	} else {
 		// セッション未確立。
-		return startSession(sys, w, r, uri, taId)
+		return startSession(sys, w, r, taId)
 	}
 }
 
 // 転送する。
-func forward(sys *system, w http.ResponseWriter, r *http.Request, uri, taId string, sess *session) error {
+func forward(sys *system, w http.ResponseWriter, r *http.Request, taId string, sess *session) error {
 	r.AddCookie(&http.Cookie{Name: cookieTaSess, Value: sess.id})
 	r.RequestURI = ""
 
@@ -61,7 +60,7 @@ func forward(sys *system, w http.ResponseWriter, r *http.Request, uri, taId stri
 		err = erro.Wrap(err)
 		switch erro.Unwrap(err).(type) {
 		case *net.OpError:
-			return erro.Wrap(util.NewHttpStatusError(http.StatusNotFound, "cannot connect "+uri, err))
+			return erro.Wrap(util.NewHttpStatusError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
 		default:
 			return err
 		}
@@ -71,23 +70,23 @@ func forward(sys *system, w http.ResponseWriter, r *http.Request, uri, taId stri
 	if resp.StatusCode == http.StatusUnauthorized && resp.Header.Get(headerTaAuthErr) != "" {
 		// edo-auth で 401 Unauthorized なら、タイミングの問題なので startSession からやり直す。
 		// 古いセッションは上書きされるので消す必要無し。
-		return startSession(sys, w, r, uri, taId)
+		return startSession(sys, w, r, taId)
 	}
 
 	return copyResponse(resp, w)
 }
 
 // セッション開始。
-func startSession(sys *system, w http.ResponseWriter, r *http.Request, uri, taId string) error {
+func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId string) error {
 
 	cli := &http.Client{}
 
-	resp, err := cli.Get(uri)
+	resp, err := cli.Get(uriBase(r.URL))
 	if err != nil {
 		err = erro.Wrap(err)
 		switch erro.Unwrap(err).(type) {
 		case *net.OpError:
-			return erro.Wrap(util.NewHttpStatusError(http.StatusNotFound, "cannot connect "+uri, err))
+			return erro.Wrap(util.NewHttpStatusError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
 		default:
 			return err
 		}
@@ -143,7 +142,7 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, uri, taId
 		err = erro.Wrap(err)
 		switch erro.Unwrap(err).(type) {
 		case *net.OpError:
-			return erro.Wrap(util.NewHttpStatusError(http.StatusNotFound, "cannot connect "+uri, err))
+			return erro.Wrap(util.NewHttpStatusError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
 		default:
 			return err
 		}
@@ -152,7 +151,7 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, uri, taId
 
 	if resp.Header.Get(headerTaAuthErr) != "" {
 		// セッションを保存。
-		if _, err := sys.addSession(&session{id: sess.Value, uri: uri, taId: taId, cli: cli}, expiDate); err != nil {
+		if _, err := sys.addSession(&session{id: sess.Value, uri: uriBase(r.URL), taId: taId, cli: cli}, expiDate); err != nil {
 			return erro.Wrap(err)
 		}
 	}
