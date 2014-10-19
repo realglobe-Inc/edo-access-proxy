@@ -135,7 +135,7 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 		hashName = sys.hashName
 	}
 
-	sign, err := sign(priKey, hashName, sessToken)
+	tokenSign, err := sign(priKey, hashName, sessToken)
 	if err != nil {
 		return erro.Wrap(err)
 	}
@@ -145,7 +145,7 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 
 	r.AddCookie(&http.Cookie{Name: cookieTaSess, Value: sess.Value})
 	r.Header.Set(headerTaId, taId)
-	r.Header.Set(headerTaTokenSig, sign)
+	r.Header.Set(headerTaTokenSig, tokenSign)
 	r.Header.Set(headerHashFunc, hashName)
 	r.RequestURI = ""
 
