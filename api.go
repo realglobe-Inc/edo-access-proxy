@@ -57,6 +57,9 @@ func forward(sys *system, w http.ResponseWriter, r *http.Request, taId string, s
 	r.AddCookie(&http.Cookie{Name: cookieTaSess, Value: sess.id})
 	r.RequestURI = ""
 
+	////////////////////////////////////////////////////////////
+	util.LogRequest(r, true)
+	////////////////////////////////////////////////////////////
 	resp, err := sess.cli.Do(r)
 	if err != nil {
 		err = erro.Wrap(err)
@@ -68,6 +71,9 @@ func forward(sys *system, w http.ResponseWriter, r *http.Request, taId string, s
 		}
 	}
 	defer resp.Body.Close()
+	////////////////////////////////////////////////////////////
+	util.LogResponse(resp, true)
+	////////////////////////////////////////////////////////////
 
 	log.Debug("forwarded")
 
@@ -86,6 +92,10 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 	cli := &http.Client{}
 
 	r.RequestURI = ""
+
+	////////////////////////////////////////////////////////////
+	util.LogRequest(r, true)
+	////////////////////////////////////////////////////////////
 	resp, err := cli.Do(r)
 	if err != nil {
 		err = erro.Wrap(err)
@@ -97,6 +107,9 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 		}
 	}
 	defer resp.Body.Close()
+	////////////////////////////////////////////////////////////
+	util.LogResponse(resp, true)
+	////////////////////////////////////////////////////////////
 
 	log.Debug("sent raw request")
 
@@ -149,6 +162,9 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 	r.Header.Set(headerHashFunc, hashName)
 	r.RequestURI = ""
 
+	////////////////////////////////////////////////////////////
+	util.LogRequest(r, true)
+	////////////////////////////////////////////////////////////
 	resp, err = cli.Do(r)
 	if err != nil {
 		err = erro.Wrap(err)
@@ -160,6 +176,9 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 		}
 	}
 	defer resp.Body.Close()
+	////////////////////////////////////////////////////////////
+	util.LogResponse(resp, true)
+	////////////////////////////////////////////////////////////
 
 	// 認証された。
 	log.Debug("authentication finished")
