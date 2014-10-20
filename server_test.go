@@ -6,9 +6,11 @@ import (
 	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -187,5 +189,77 @@ func TestNormal(t *testing.T) {
 		t.Fatal(err)
 	} else if cookie.Value != sessId {
 		t.Error(cookieTaSess + " is " + cookie.Value + " not " + sessId)
+	}
+}
+
+// ボディがちゃんと転送されるかどうか。
+func TestEdoAccessProxyBody(t *testing.T) {
+	////////////////////////////////
+	hndl := util.InitLog("github.com/realglobe-Inc")
+	hndl.SetLevel(level.ALL)
+	defer hndl.SetLevel(level.INFO)
+	////////////////////////////////
+
+	// プロキシ先のサーバーを用意。
+	destPort, err := util.FreePort()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dest, err := util.NewTestHttpServer(destPort)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dest.Close()
+
+	// サーバ起動待ち。
+	time.Sleep(10 * time.Millisecond)
+
+	// テストするプロキシサーバーを用意。
+	port, err := util.FreePort()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sys := &system{
+		priKeyCont: driver.NewMemoryKeyValueStore(0),
+		taId:       "ta-no-id",
+		hashName:   "sha256",
+		sessCont:   driver.NewMemoryTimeLimitedKeyValueStore(0),
+	}
+	go serve(sys, "tcp", "", port, "http")
+
+	// サーバ起動待ち。
+	time.Sleep(10 * time.Millisecond)
+
+	proxyUrl, err := url.Parse("http://localhost:" + strconv.Itoa(port))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
+
+	sessId := "session-da-yo"
+	token := "token-da-yo"
+	sys.priKeyCont.Put(sys.taId, testPriKey)
+	dest.AddResponse(http.StatusUnauthorized, map[string][]string{
+		"Set-Cookie":    []string{(&http.Cookie{Name: cookieTaSess, Value: sessId}).String()},
+		headerTaAuthErr: []string{"start new session"},
+		headerTaToken:   []string{token},
+	}, nil)
+	reqCh := dest.AddResponse(http.StatusOK, nil, nil)
+
+	body := "body da yo"
+	resp, err := cli.Post("http://localhost:"+strconv.Itoa(destPort)+"/", "text/plain", strings.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	req := <-reqCh
+	buff, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(buff) != body {
+		t.Error("body is " + string(buff) + " not " + body)
 	}
 }

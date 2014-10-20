@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/base64"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -91,7 +93,13 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 
 	cli := &http.Client{}
 
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return erro.Wrap(err)
+	}
+
 	r.RequestURI = ""
+	r.Body = ioutil.NopCloser(bytes.NewReader(body))
 
 	////////////////////////////////////////////////////////////
 	util.LogRequest(r, true)
@@ -161,6 +169,7 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 	r.Header.Set(headerTaTokenSig, tokenSign)
 	r.Header.Set(headerHashFunc, hashName)
 	r.RequestURI = ""
+	r.Body = ioutil.NopCloser(bytes.NewReader(body))
 
 	////////////////////////////////////////////////////////////
 	util.LogRequest(r, true)
