@@ -183,7 +183,7 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 	// 認証された。
 	log.Debug("authentication finished")
 
-	if resp.Header.Get(headerTaAuthErr) != "" {
+	if resp.Header.Get(headerTaAuthErr) == "" {
 		// セッションを保存。
 		if _, err := sys.addSession(&session{id: sess.Value, uri: uriBase(r.URL), taId: taId, cli: cli}, expiDate); err != nil {
 			return erro.Wrap(err)
