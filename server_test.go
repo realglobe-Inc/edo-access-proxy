@@ -23,7 +23,7 @@ func TestEdoAccessProxy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dest, err := util.NewTestHttpServer(destPort, 100)
+	dest, err := util.NewTestHttpServer(destPort)
 	if err != nil {
 		t.Fatal(err)
 	}
