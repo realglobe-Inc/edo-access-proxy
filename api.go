@@ -186,7 +186,11 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 	if resp.Header.Get(headerTaAuthErr) == "" {
 		// セッションを保存。
 		if _, err := sys.addSession(&session{id: sess.Value, uri: uriBase(r.URL), taId: taId, cli: cli}, expiDate); err != nil {
-			return erro.Wrap(err)
+			err = erro.Wrap(err)
+			log.Err(erro.Unwrap(err))
+			log.Debug(err)
+		} else {
+			log.Debug("session was saved")
 		}
 	}
 
