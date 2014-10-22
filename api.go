@@ -1,14 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/base64"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -29,6 +27,9 @@ const (
 	cookieTaSess = "X-Edo-Ta-Session"
 )
 
+// 1 回のリクエストにつきボディまで送るのは 1 回だけ。
+// 再送信のために毎回ボディのコピーを取っておくのは重いから。
+// そのため、有効期限内のセッションがプロキシ先で破棄されてしまった場合には必ず失敗する。
 
 // Web プロキシ。
 func proxyApi(sys *system, w http.ResponseWriter, r *http.Request) error {
@@ -83,9 +84,14 @@ func forward(sys *system, w http.ResponseWriter, r *http.Request, taId string, s
 	log.Debug("forwarded")
 
 	if resp.StatusCode == http.StatusUnauthorized && resp.Header.Get(headerTaAuthErr) != "" {
-		// edo-auth で 401 Unauthorized なら、タイミングの問題なので startSession からやり直す。
-		// 古いセッションは上書きされるので消す必要無し。
-		return startSession(sys, w, r, taId)
+		// セッションがプロキシ先で破棄されてしまっていた。
+		log.Debug("session was destroyed at destination")
+
+		if err := sys.removeSession(sess); err != nil {
+			err = erro.Wrap(err)
+			log.Err(erro.Unwrap(err))
+			log.Debug(err)
+		}
 	}
 
 	return copyResponse(resp, w)
@@ -96,18 +102,7 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 
 	cli := &http.Client{}
 
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return erro.Wrap(err)
-	}
-
-	r.RequestURI = ""
-	r.Body = ioutil.NopCloser(bytes.NewReader(body))
-
-	////////////////////////////////////////////////////////////
-	util.LogRequest(r, true)
-	////////////////////////////////////////////////////////////
-	resp, err := cli.Do(r)
+	resp, err := cli.Get(uriBase(r.URL))
 	if err != nil {
 		err = erro.Wrap(err)
 		if isDestinationError(err) {
@@ -123,8 +118,30 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 
 	log.Debug("sent raw request")
 
-	if resp.Header.Get(headerTaAuthErr) == "" || resp.StatusCode != http.StatusUnauthorized {
-		// 相手側が TA 認証を必要としていなかったのかもしれない。
+	if resp.Header.Get(headerTaAuthErr) == "" {
+		// 認証が必要無かった。
+		log.Debug("authentication is not required")
+
+		r.RequestURI = ""
+		////////////////////////////////////////////////////////////
+		util.LogRequest(r, true)
+		////////////////////////////////////////////////////////////
+		resp, err = cli.Do(r)
+		if err != nil {
+			err = erro.Wrap(err)
+			if isDestinationError(err) {
+				return erro.Wrap(util.NewHttpStatusError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
+			} else {
+				return err
+			}
+		}
+		defer resp.Body.Close()
+		////////////////////////////////////////////////////////////
+		util.LogResponse(resp, true)
+		////////////////////////////////////////////////////////////
+		return copyResponse(resp, w)
+	} else if resp.StatusCode != http.StatusUnauthorized {
+		// 未認証以外のエラー。
 		return copyResponse(resp, w)
 	}
 
@@ -171,8 +188,6 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 	r.Header.Set(headerTaTokenSig, tokenSign)
 	r.Header.Set(headerHashFunc, hashName)
 	r.RequestURI = ""
-	r.Body = ioutil.NopCloser(bytes.NewReader(body))
-
 	////////////////////////////////////////////////////////////
 	util.LogRequest(r, true)
 	////////////////////////////////////////////////////////////

@@ -96,6 +96,7 @@ func TestNormal(t *testing.T) {
 	cli := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
 
 	// 素通りする。
+	dest.AddResponse(http.StatusOK, nil, nil)
 	dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
 	resp, err := cli.Get("http://localhost:" + strconv.Itoa(destPort) + "/")
