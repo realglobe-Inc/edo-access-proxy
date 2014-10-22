@@ -69,10 +69,9 @@ func forward(sys *system, w http.ResponseWriter, r *http.Request, taId string, s
 	resp, err := sess.cli.Do(r)
 	if err != nil {
 		err = erro.Wrap(err)
-		switch erro.Unwrap(err).(type) {
-		case *net.OpError:
+		if isDestinationError(err) {
 			return erro.Wrap(util.NewHttpStatusError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
-		default:
+		} else {
 			return err
 		}
 	}
@@ -111,10 +110,9 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 	resp, err := cli.Do(r)
 	if err != nil {
 		err = erro.Wrap(err)
-		switch erro.Unwrap(err).(type) {
-		case *net.OpError:
+		if isDestinationError(err) {
 			return erro.Wrap(util.NewHttpStatusError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
-		default:
+		} else {
 			return err
 		}
 	}
@@ -181,10 +179,9 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 	resp, err = cli.Do(r)
 	if err != nil {
 		err = erro.Wrap(err)
-		switch erro.Unwrap(err).(type) {
-		case *net.OpError:
+		if isDestinationError(err) {
 			return erro.Wrap(util.NewHttpStatusError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
-		default:
+		} else {
 			return err
 		}
 	}
