@@ -29,9 +29,6 @@ const (
 	cookieTaSess = "X-Edo-Ta-Session"
 )
 
-func uriBase(url *url.URL) string {
-	return url.Scheme + "://" + url.Host + url.Path
-}
 
 // Web プロキシ。
 func proxyApi(sys *system, w http.ResponseWriter, r *http.Request) error {
@@ -211,6 +208,11 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 	}
 
 	return copyResponse(resp, w)
+}
+
+// クエリパラメータ等を除いた URL を得る。
+func uriBase(url *url.URL) string {
+	return url.Scheme + "://" + url.Host + url.Path
 }
 
 // 相手側 TA の認証開始レスポンスから必要情報を抜き出す。
