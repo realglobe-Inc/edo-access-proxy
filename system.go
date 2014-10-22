@@ -48,6 +48,10 @@ func (sys *system) addSession(sess *session, expiDate time.Time) (newCaStmp *dri
 	return sys.sessCont.Put(sess.uri+"<>"+sess.taId, sess, expiDate)
 }
 
+func (sys *system) removeSession(sess *session) (err error) {
+	return sys.sessCont.Remove(sess.uri + "<>" + sess.taId)
+}
+
 func (sys *system) privateKey(taId string, caStmp *driver.Stamp) (priKey *rsa.PrivateKey, newCaStmp *driver.Stamp, err error) {
 	value, newCaStmp, err := sys.priKeyCont.Get(taId, caStmp)
 	if err != nil {
