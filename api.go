@@ -215,6 +215,32 @@ func uriBase(url *url.URL) string {
 	return url.Scheme + "://" + url.Host + url.Path
 }
 
+// プロキシ先がおかしいかどうか。
+func isDestinationError(err error) bool {
+	for {
+		switch e := erro.Unwrap(err).(type) {
+		case *net.OpError:
+			return true
+		case *url.Error:
+			if e.Err != nil {
+				err = e.Err
+			} else {
+				return false
+			}
+		case *erro.Tracer:
+			err = e.Cause()
+		case *util.HttpStatusError:
+			if e.Cause() != nil {
+				err = e.Cause()
+			} else {
+				return false
+			}
+		default:
+			return false
+		}
+	}
+}
+
 // 相手側 TA の認証開始レスポンスから必要情報を抜き出す。
 func parseSession(resp *http.Response) (sess *http.Cookie, sessToken string) {
 	for _, cookie := range resp.Cookies() {
