@@ -22,6 +22,8 @@ const (
 	headerTaTokenSig = "X-Edo-Ta-Token-Sign"
 	headerHashFunc   = "X-Edo-Hash-Function"
 
+	headerAccProxErr = "X-Edo-Access-Proxy-Error"
+
 	headerTaAuthErr = "X-Edo-Ta-Auth-Error"
 
 	cookieTaSess = "X-Edo-Ta-Session"

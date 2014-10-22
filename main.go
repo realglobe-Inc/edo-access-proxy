@@ -89,8 +89,6 @@ func serve(sys *system, socType, socPath string, socPort int, protType string) e
 }
 
 func wrapper(f func(http.ResponseWriter, *http.Request) error) func(http.ResponseWriter, *http.Request) error {
-	const headerAccProxErr = "X-Edo-Access-Proxy-Error"
-
 	return func(w http.ResponseWriter, r *http.Request) error {
 		if err := f(w, r); err != nil {
 			err = erro.Wrap(err)
