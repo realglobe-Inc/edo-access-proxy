@@ -92,7 +92,22 @@ func wrapper(f func(http.ResponseWriter, *http.Request) error) func(http.Respons
 	return func(w http.ResponseWriter, r *http.Request) error {
 		if err := f(w, r); err != nil {
 			err = erro.Wrap(err)
-			w.Header().Set(headerAccProxErr, "error")
+			var msg string
+			for baseErr := err; msg == ""; {
+				switch e := erro.Unwrap(baseErr).(type) {
+				case *util.HttpStatusError:
+					if e.Cause() == nil {
+						msg = e.Message()
+					} else {
+						baseErr = e.Cause()
+					}
+				case *erro.Tracer:
+					baseErr = e.Cause()
+				default:
+					msg = e.Error()
+				}
+			}
+			w.Header().Set(headerAccProxErr, msg)
 			return err
 		}
 		return nil
