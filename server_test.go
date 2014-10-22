@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/edo/util"
+	"github.com/realglobe-Inc/go-lib-rg/rglog/handler"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"io/ioutil"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 )
 
 var testPriKey *rsa.PrivateKey
+var hndl handler.Handler
 
 func init() {
 	var err error
@@ -49,12 +51,14 @@ D8/JxZKNMEyxS8BvCPYqhobhlCqwHtc6wpSWC++fU79xvFrb/X+nVQ==
 	if err != nil {
 		panic(err)
 	}
+
+	hndl = util.InitLog("github.com/realglobe-Inc")
+	hndl.SetLevel(level.OFF)
 }
 
 // 正常系。
 func TestNormal(t *testing.T) {
 	// ////////////////////////////////
-	// hndl := util.InitLog("github.com/realglobe-Inc")
 	// hndl.SetLevel(level.ALL)
 	// defer hndl.SetLevel(level.INFO)
 	// ////////////////////////////////
@@ -196,7 +200,6 @@ func TestNormal(t *testing.T) {
 // ボディがちゃんと転送されるかどうか。
 func TestEdoAccessProxyBody(t *testing.T) {
 	////////////////////////////////
-	hndl := util.InitLog("github.com/realglobe-Inc")
 	hndl.SetLevel(level.ALL)
 	defer hndl.SetLevel(level.INFO)
 	////////////////////////////////
