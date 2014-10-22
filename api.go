@@ -145,7 +145,7 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 		return copyResponse(resp, w)
 	}
 
-	// 相手側 TA も認証始めた。
+	// プロキシ先も認証始めた。
 	log.Debug("authentication started")
 
 	sess, sessToken := parseSession(resp)
@@ -253,7 +253,7 @@ func isDestinationError(err error) bool {
 	}
 }
 
-// 相手側 TA の認証開始レスポンスから必要情報を抜き出す。
+// プロキシ先の認証開始レスポンスから必要情報を抜き出す。
 func parseSession(resp *http.Response) (sess *http.Cookie, sessToken string) {
 	for _, cookie := range resp.Cookies() {
 		if cookie.Name == cookieTaSess {
@@ -265,7 +265,7 @@ func parseSession(resp *http.Response) (sess *http.Cookie, sessToken string) {
 	return sess, resp.Header.Get(headerTaToken)
 }
 
-// 相手側 TA からのレスポンスをリクエスト元へのレスポンスに写す。
+// プロキシ先からのレスポンスをリクエスト元へのレスポンスに写す。
 func copyResponse(resp *http.Response, w http.ResponseWriter) error {
 	// ヘッダフィールドのコピー。
 	for key, values := range resp.Header {
@@ -285,7 +285,7 @@ func copyResponse(resp *http.Response, w http.ResponseWriter) error {
 	return nil
 }
 
-// 相手側 TA からのお題に署名する。
+// プロキシ先からのお題に署名する。
 func sign(priKey *rsa.PrivateKey, hashName, token string) (string, error) {
 	hash, err := util.ParseHashFunction(hashName)
 	if err != nil {
@@ -302,7 +302,7 @@ func sign(priKey *rsa.PrivateKey, hashName, token string) (string, error) {
 	return base64.StdEncoding.EncodeToString(buff), nil
 }
 
-// 相手側 TA が提示したセッションの有効期限を読み取る。
+// プロキシ先が提示したセッションの有効期限を読み取る。
 func getExpirationDate(sess *http.Cookie) (expiDate time.Time) {
 	if sess.MaxAge != 0 {
 		return time.Now().Add(time.Duration(sess.MaxAge))
