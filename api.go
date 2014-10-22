@@ -305,7 +305,7 @@ func sign(priKey *rsa.PrivateKey, hashName, token string) (string, error) {
 // プロキシ先が提示したセッションの有効期限を読み取る。
 func getExpirationDate(sess *http.Cookie) (expiDate time.Time) {
 	if sess.MaxAge != 0 {
-		return time.Now().Add(time.Duration(sess.MaxAge))
+		return time.Now().Add(time.Duration(sess.MaxAge) * time.Second)
 	} else {
 		return sess.Expires
 	}
