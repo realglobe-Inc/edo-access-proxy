@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -32,6 +33,10 @@ func uriBase(url *url.URL) string {
 
 // Web プロキシ。
 func proxyApi(sys *system, w http.ResponseWriter, r *http.Request) error {
+
+	if !strings.HasPrefix(r.RequestURI, "http://") && !strings.HasPrefix(r.RequestURI, "https://") {
+		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "no scheme in request uri", nil))
+	}
 
 	taId := r.Header.Get(headerTaId)
 	if taId == "" {
