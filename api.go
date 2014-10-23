@@ -155,7 +155,7 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "no header field "+headerTaToken, nil))
 	}
 
-	expiDate := getExpirationDate(sess)
+	expiDate := getExpirationDate(sess, sys.sessMargin)
 
 	// 認証用データが揃ってた。
 	log.Debug("authentication data was found")
@@ -303,10 +303,13 @@ func sign(priKey *rsa.PrivateKey, hashName, token string) (string, error) {
 }
 
 // プロキシ先が提示したセッションの有効期限を読み取る。
-func getExpirationDate(sess *http.Cookie) (expiDate time.Time) {
-	if sess.MaxAge != 0 {
-		return time.Now().Add(time.Duration(sess.MaxAge) * time.Second)
+func getExpirationDate(sess *http.Cookie, margin time.Duration) (expiDate time.Time) {
+	// プロキシ先で破棄されていると失敗してしまう実装なので、遊びを設けて返す。
+	if float64(sess.MaxAge) > margin.Seconds() {
+		return time.Now().Add(time.Duration(sess.MaxAge)*time.Second - margin)
+	} else if !sess.Expires.IsZero() {
+		return sess.Expires.Add(-margin)
 	} else {
-		return sess.Expires
+		return time.Time{}
 	}
 }

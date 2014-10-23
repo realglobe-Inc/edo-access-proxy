@@ -14,15 +14,16 @@ type system struct {
 	taId     string
 	hashName string // 署名に使うハッシュ関数。
 
-	sessCont driver.TimeLimitedKeyValueStore
+	sessCont   driver.TimeLimitedKeyValueStore
+	sessMargin time.Duration // 有効期限ギリギリのセッションを避けるための遊び。
 }
 
 func newSystem(priKeyCont driver.KeyValueStore, taId string, hashName string) *system {
 	return &system{
-		priKeyCont,
-		taId,
-		hashName,
-		driver.NewMemoryTimeLimitedKeyValueStore(0),
+		priKeyCont: priKeyCont,
+		taId:       taId,
+		hashName:   hashName,
+		sessCont:   driver.NewMemoryTimeLimitedKeyValueStore(0),
 	}
 }
 

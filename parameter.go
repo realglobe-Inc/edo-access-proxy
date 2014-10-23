@@ -55,6 +55,9 @@ type parameters struct {
 
 	// 署名に使うハッシュ関数。
 	hashName string
+
+	// 有効期限ギリギリのセッションを避けるための遊び。
+	sessMargin time.Duration
 }
 
 func parseParameters(args ...string) (param *parameters, err error) {
@@ -89,6 +92,8 @@ func parseParameters(args ...string) (param *parameters, err error) {
 
 	flags.StringVar(&param.taId, "taId", "", "TA ID.")
 	flags.StringVar(&param.hashName, "hashName", "sha1", "Sign hash type.")
+
+	flags.DurationVar(&param.sessMargin, "sessMargin", time.Second, "Margin for session expiration date.")
 
 	var config string
 	flags.StringVar(&config, "f", "", "Config file path.")

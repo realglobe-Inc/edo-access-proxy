@@ -121,7 +121,7 @@ func TestNormal(t *testing.T) {
 	token := "token-da-yo"
 	sys.priKeyCont.Put(sys.taId, testPriKey)
 	dest.AddResponse(http.StatusUnauthorized, map[string][]string{
-		"Set-Cookie":    []string{(&http.Cookie{Name: cookieTaSess, Value: sessId, Expires: time.Now().Add(time.Second)}).String()},
+		"Set-Cookie":    []string{(&http.Cookie{Name: cookieTaSess, Value: sessId, Expires: time.Now().Add(10 * time.Second)}).String()},
 		headerTaAuthErr: []string{"start new session"},
 		headerTaToken:   []string{token},
 	}, nil)
@@ -244,7 +244,7 @@ func TestNormalMaxAge(t *testing.T) {
 	token := "token-da-yo"
 	sys.priKeyCont.Put(sys.taId, testPriKey)
 	dest.AddResponse(http.StatusUnauthorized, map[string][]string{
-		"Set-Cookie":    []string{(&http.Cookie{Name: cookieTaSess, Value: sessId, MaxAge: 1}).String()},
+		"Set-Cookie":    []string{(&http.Cookie{Name: cookieTaSess, Value: sessId, MaxAge: 10}).String()},
 		headerTaAuthErr: []string{"start new session"},
 		headerTaToken:   []string{token},
 	}, nil)
@@ -429,7 +429,7 @@ func TestSpecifyTa(t *testing.T) {
 	taId := "chigau-ta-no-id"
 	sys.priKeyCont.Put(taId, testPriKey)
 	dest.AddResponse(http.StatusUnauthorized, map[string][]string{
-		"Set-Cookie":    []string{(&http.Cookie{Name: cookieTaSess, Value: sessId, Expires: time.Now().Add(time.Second)}).String()},
+		"Set-Cookie":    []string{(&http.Cookie{Name: cookieTaSess, Value: sessId, Expires: time.Now().Add(10 * time.Second)}).String()},
 		headerTaAuthErr: []string{"start new session"},
 		headerTaToken:   []string{token},
 	}, nil)
@@ -623,7 +623,7 @@ func TestLackOfAuthenticationInformation(t *testing.T) {
 
 	// X-Edo-Ta-Token が無い。
 	dest.AddResponse(http.StatusUnauthorized, map[string][]string{
-		"Set-Cookie":    []string{(&http.Cookie{Name: cookieTaSess, Value: "session-da-yo", Expires: time.Now().Add(time.Second)}).String()},
+		"Set-Cookie":    []string{(&http.Cookie{Name: cookieTaSess, Value: "session-da-yo", Expires: time.Now().Add(10 * time.Second)}).String()},
 		headerTaAuthErr: []string{"start new session"},
 	}, nil)
 
@@ -702,7 +702,7 @@ func TestNoSignKey(t *testing.T) {
 	sessId := "session-da-yo"
 	token := "token-da-yo"
 	dest.AddResponse(http.StatusUnauthorized, map[string][]string{
-		"Set-Cookie":    []string{(&http.Cookie{Name: cookieTaSess, Value: sessId, Expires: time.Now().Add(time.Second)}).String()},
+		"Set-Cookie":    []string{(&http.Cookie{Name: cookieTaSess, Value: sessId, Expires: time.Now().Add(10 * time.Second)}).String()},
 		headerTaAuthErr: []string{"start new session"},
 		headerTaToken:   []string{token},
 	}, nil)

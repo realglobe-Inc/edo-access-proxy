@@ -71,6 +71,7 @@ func mainCore(param *parameters) error {
 		param.taId,
 		param.hashName,
 	)
+	sys.sessMargin = param.sessMargin
 	return serve(sys, param.acpSocType, param.acpSocPath, param.acpSocPort, param.acpProtType)
 }
 
