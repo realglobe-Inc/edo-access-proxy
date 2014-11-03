@@ -62,7 +62,9 @@ type parameters struct {
 
 func parseParameters(args ...string) (param *parameters, err error) {
 
-	flags := util.NewFlagSet("edo-access-proxy parameters", flag.ExitOnError)
+	const label = "access-proxy"
+
+	flags := util.NewFlagSet("edo-"+label+" parameters", flag.ExitOnError)
 	flags.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage:")
 		fmt.Fprintln(os.Stderr, "  "+args[0]+" [{FLAG}...]")
@@ -75,16 +77,16 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.Var(level.Var(&param.consLv, level.INFO), "consLv", "Console log level.")
 	flags.StringVar(&param.logType, "logType", "", "Extra log type.")
 	flags.Var(level.Var(&param.logLv, level.ALL), "logLv", "Extra log level.")
-	flags.StringVar(&param.acpLogPath, "acpLogPath", filepath.Join(os.TempDir(), "edo-access-proxy.log"), "File log path.")
+	flags.StringVar(&param.acpLogPath, "acpLogPath", filepath.Join(os.TempDir(), "edo-"+label+".log"), "File log path.")
 	flags.StringVar(&param.fluAddr, "fluAddr", "localhost:24224", "fluentd address.")
-	flags.StringVar(&param.acpFluTag, "acpFluTag", "edo.access-proxy", "fluentd tag.")
+	flags.StringVar(&param.acpFluTag, "acpFluTag", "edo."+label, "fluentd tag.")
 
 	flags.StringVar(&param.priKeyContType, "priKeyContType", "file", "Private key container type.")
 	flags.StringVar(&param.priKeyContPath, "priKeyContPath", filepath.Join("sandbox", "private-key"), "Private key container directory.")
 
 	flags.StringVar(&param.acpSocType, "acpSocType", "tcp", "Socket type.")
-	flags.StringVar(&param.acpSocPath, "acpSocPath", filepath.Join(os.TempDir(), "edo-access-proxy"), "UNIX socket path.")
-	flags.IntVar(&param.acpSocPort, "acpSocPort", 8002, "TCP socket port.")
+	flags.StringVar(&param.acpSocPath, "acpSocPath", filepath.Join(os.TempDir(), "edo-"+label), "UNIX socket path.")
+	flags.IntVar(&param.acpSocPort, "acpSocPort", 16051, "TCP socket port.")
 
 	flags.StringVar(&param.acpProtType, "acpProtType", "http", "Protocol type.")
 
