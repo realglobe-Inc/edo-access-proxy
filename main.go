@@ -32,7 +32,7 @@ func main() {
 	}
 
 	hndl.SetLevel(param.consLv)
-	if err := util.SetupLog("github.com/realglobe-Inc", param.logType, param.logLv, param.acpLogPath, param.fluAddr, param.acpFluTag); err != nil {
+	if err := util.SetupLog("github.com/realglobe-Inc", param.logType, param.logLv, param.logPath, param.fluAddr, param.fluTag); err != nil {
 		log.Err(erro.Unwrap(err))
 		log.Debug(err)
 		exitCode = 1
@@ -72,7 +72,7 @@ func mainCore(param *parameters) error {
 		param.hashName,
 	)
 	sys.sessMargin = param.sessMargin
-	return serve(sys, param.acpSocType, param.acpSocPath, param.acpSocPort, param.acpProtType)
+	return serve(sys, param.socType, param.socPath, param.socPort, param.protType)
 }
 
 // 振り分ける。
