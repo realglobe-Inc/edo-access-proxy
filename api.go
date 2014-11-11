@@ -43,7 +43,7 @@ func proxyApi(sys *system, w http.ResponseWriter, r *http.Request) error {
 		taId = sys.taId
 	}
 
-	sess, _, err := sys.session(uriBase(r.URL), taId, nil)
+	sess, _, err := sys.session(r.Host, taId, nil)
 	if err != nil {
 		return erro.Wrap(err)
 	}
@@ -210,7 +210,7 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 
 	if resp.Header.Get(headerTaAuthErr) == "" {
 		// セッションを保存。
-		if _, err := sys.addSession(&session{id: sess.Value, uri: uriBase(r.URL), taId: taId, cli: cli}, expiDate); err != nil {
+		if _, err := sys.addSession(&session{id: sess.Value, host: r.Host, taId: taId, cli: cli}, expiDate); err != nil {
 			err = erro.Wrap(err)
 			log.Err(erro.Unwrap(err))
 			log.Debug(err)

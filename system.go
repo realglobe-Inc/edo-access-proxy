@@ -29,7 +29,7 @@ func newSystem(priKeyCont driver.KeyValueStore, taId string, hashName string) *s
 
 type session struct {
 	id   string
-	uri  string
+	host string
 	taId string
 
 	cli *http.Client
@@ -46,11 +46,11 @@ func (sys *system) session(uri, taId string, caStmp *driver.Stamp) (sess *sessio
 }
 
 func (sys *system) addSession(sess *session, expiDate time.Time) (newCaStmp *driver.Stamp, err error) {
-	return sys.sessCont.Put(sess.uri+"<>"+sess.taId, sess, expiDate)
+	return sys.sessCont.Put(sess.host+"<>"+sess.taId, sess, expiDate)
 }
 
 func (sys *system) removeSession(sess *session) (err error) {
-	return sys.sessCont.Remove(sess.uri + "<>" + sess.taId)
+	return sys.sessCont.Remove(sess.host + "<>" + sess.taId)
 }
 
 func (sys *system) privateKey(taId string, caStmp *driver.Stamp) (priKey *rsa.PrivateKey, newCaStmp *driver.Stamp, err error) {
