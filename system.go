@@ -21,12 +21,13 @@ type system struct {
 	cliExpiDur time.Duration
 }
 
-func newSystem(priKeyCont driver.KeyValueStore, taId string, hashName string, cliExpiDur time.Duration) *system {
+func newSystem(priKeyCont driver.KeyValueStore, taId string, hashName string, sessMargin, cliExpiDur time.Duration) *system {
 	return &system{
 		priKeyCont: priKeyCont,
 		taId:       taId,
 		hashName:   hashName,
 		sessCont:   driver.NewMemoryTimeLimitedKeyValueStore(0),
+		sessMargin: sessMargin,
 		cliCont:    driver.NewMemoryTimeLimitedKeyValueStore(0),
 		cliExpiDur: cliExpiDur,
 	}

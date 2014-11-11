@@ -70,9 +70,9 @@ func mainCore(param *parameters) error {
 		priKeyCont,
 		param.taId,
 		param.hashName,
+		param.sessMargin,
 		param.cliExpiDur,
 	)
-	sys.sessMargin = param.sessMargin
 	return serve(sys, param.socType, param.socPath, param.socPort, param.protType)
 }
 
