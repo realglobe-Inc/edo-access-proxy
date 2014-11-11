@@ -16,14 +16,19 @@ type system struct {
 
 	sessCont   driver.TimeLimitedKeyValueStore
 	sessMargin time.Duration // 有効期限ギリギリのセッションを避けるための遊び。
+
+	cliCont    driver.TimeLimitedKeyValueStore
+	cliExpiDur time.Duration
 }
 
-func newSystem(priKeyCont driver.KeyValueStore, taId string, hashName string) *system {
+func newSystem(priKeyCont driver.KeyValueStore, taId string, hashName string, cliExpiDur time.Duration) *system {
 	return &system{
 		priKeyCont: priKeyCont,
 		taId:       taId,
 		hashName:   hashName,
 		sessCont:   driver.NewMemoryTimeLimitedKeyValueStore(0),
+		cliCont:    driver.NewMemoryTimeLimitedKeyValueStore(0),
+		cliExpiDur: cliExpiDur,
 	}
 }
 
@@ -31,8 +36,6 @@ type session struct {
 	id   string
 	host string
 	taId string
-
-	cli *http.Client
 }
 
 func (sys *system) session(uri, taId string, caStmp *driver.Stamp) (sess *session, newCaStmp *driver.Stamp, err error) {
@@ -62,4 +65,21 @@ func (sys *system) privateKey(taId string, caStmp *driver.Stamp) (priKey *rsa.Pr
 	}
 
 	return value.(*rsa.PrivateKey), newCaStmp, nil
+}
+
+func (sys *system) client(host string) (cli *http.Client, err error) {
+	value, _, err := sys.cliCont.Get(host, nil)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+	if value == nil {
+		cli = &http.Client{}
+	} else {
+		cli = value.(*http.Client)
+	}
+	// 有効期限の更新。
+	if _, err = sys.cliCont.Put(host, cli, time.Now().Add(sys.cliExpiDur)); err != nil {
+		return nil, erro.Wrap(err)
+	}
+	return cli, nil
 }

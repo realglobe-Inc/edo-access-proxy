@@ -56,6 +56,16 @@ D8/JxZKNMEyxS8BvCPYqhobhlCqwHtc6wpSWC++fU79xvFrb/X+nVQ==
 	hndl.SetLevel(level.OFF)
 }
 
+func newTestSystem() *system {
+	return &system{
+		priKeyCont: driver.NewMemoryKeyValueStore(0),
+		taId:       "ta-no-id",
+		hashName:   "sha256",
+		sessCont:   driver.NewMemoryTimeLimitedKeyValueStore(0),
+		cliCont:    driver.NewMemoryTimeLimitedKeyValueStore(0),
+	}
+}
+
 // 正常系。
 func TestNormal(t *testing.T) {
 	// ////////////////////////////////
@@ -79,12 +89,7 @@ func TestNormal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := &system{
-		priKeyCont: driver.NewMemoryKeyValueStore(0),
-		taId:       "ta-no-id",
-		hashName:   "sha256",
-		sessCont:   driver.NewMemoryTimeLimitedKeyValueStore(0),
-	}
+	sys := newTestSystem()
 	go serve(sys, "tcp", "", port, "http")
 
 	// サーバ起動待ち。
@@ -222,12 +227,7 @@ func TestNormalMaxAge(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := &system{
-		priKeyCont: driver.NewMemoryKeyValueStore(0),
-		taId:       "ta-no-id",
-		hashName:   "sha256",
-		sessCont:   driver.NewMemoryTimeLimitedKeyValueStore(0),
-	}
+	sys := newTestSystem()
 	go serve(sys, "tcp", "", port, "http")
 
 	// サーバ起動待ち。
@@ -302,12 +302,7 @@ func TestEdoAccessProxyBody(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := &system{
-		priKeyCont: driver.NewMemoryKeyValueStore(0),
-		taId:       "ta-no-id",
-		hashName:   "sha256",
-		sessCont:   driver.NewMemoryTimeLimitedKeyValueStore(0),
-	}
+	sys := newTestSystem()
 	go serve(sys, "tcp", "", port, "http")
 
 	// サーバ起動待ち。
@@ -359,12 +354,7 @@ func TestNotProxyUrl(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := &system{
-		priKeyCont: driver.NewMemoryKeyValueStore(0),
-		taId:       "ta-no-id",
-		hashName:   "sha256",
-		sessCont:   driver.NewMemoryTimeLimitedKeyValueStore(0),
-	}
+	sys := newTestSystem()
 	go serve(sys, "tcp", "", port, "http")
 
 	// サーバ起動待ち。
@@ -406,12 +396,7 @@ func TestSpecifyTa(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := &system{
-		priKeyCont: driver.NewMemoryKeyValueStore(0),
-		taId:       "ta-no-id",
-		hashName:   "sha256",
-		sessCont:   driver.NewMemoryTimeLimitedKeyValueStore(0),
-	}
+	sys := newTestSystem()
 	go serve(sys, "tcp", "", port, "http")
 
 	// サーバ起動待ち。
@@ -485,12 +470,7 @@ func TestNoDestination(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := &system{
-		priKeyCont: driver.NewMemoryKeyValueStore(0),
-		taId:       "ta-no-id",
-		hashName:   "sha256",
-		sessCont:   driver.NewMemoryTimeLimitedKeyValueStore(0),
-	}
+	sys := newTestSystem()
 	go serve(sys, "tcp", "", port, "http")
 
 	// サーバ起動待ち。
@@ -543,12 +523,7 @@ func TestErrorCancel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := &system{
-		priKeyCont: driver.NewMemoryKeyValueStore(0),
-		taId:       "ta-no-id",
-		hashName:   "sha256",
-		sessCont:   driver.NewMemoryTimeLimitedKeyValueStore(0),
-	}
+	sys := newTestSystem()
 	go serve(sys, "tcp", "", port, "http")
 
 	// サーバ起動待ち。
@@ -604,12 +579,7 @@ func TestLackOfAuthenticationInformation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := &system{
-		priKeyCont: driver.NewMemoryKeyValueStore(0),
-		taId:       "ta-no-id",
-		hashName:   "sha256",
-		sessCont:   driver.NewMemoryTimeLimitedKeyValueStore(0),
-	}
+	sys := newTestSystem()
 	go serve(sys, "tcp", "", port, "http")
 
 	// サーバ起動待ち。
@@ -681,12 +651,7 @@ func TestNoSignKey(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := &system{
-		priKeyCont: driver.NewMemoryKeyValueStore(0),
-		taId:       "ta-no-id",
-		hashName:   "sha256",
-		sessCont:   driver.NewMemoryTimeLimitedKeyValueStore(0),
-	}
+	sys := newTestSystem()
 	go serve(sys, "tcp", "", port, "http")
 
 	// サーバ起動待ち。

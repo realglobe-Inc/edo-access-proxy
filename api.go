@@ -61,13 +61,17 @@ func proxyApi(sys *system, w http.ResponseWriter, r *http.Request) error {
 
 // 転送する。
 func forward(sys *system, w http.ResponseWriter, r *http.Request, taId string, sess *session) error {
+	cli, err := sys.client(r.Host)
+	if err != nil {
+		return erro.Wrap(err)
+	}
 	r.AddCookie(&http.Cookie{Name: cookieTaSess, Value: sess.id})
 	r.RequestURI = ""
 
 	////////////////////////////////////////////////////////////
 	util.LogRequest(r, true)
 	////////////////////////////////////////////////////////////
-	resp, err := sess.cli.Do(r)
+	resp, err := cli.Do(r)
 	if err != nil {
 		err = erro.Wrap(err)
 		if isDestinationError(err) {
@@ -100,7 +104,10 @@ func forward(sys *system, w http.ResponseWriter, r *http.Request, taId string, s
 // セッション開始。
 func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId string) error {
 
-	cli := &http.Client{}
+	cli, err := sys.client(r.Host)
+	if err != nil {
+		return erro.Wrap(err)
+	}
 
 	resp, err := cli.Get(uriBase(r.URL))
 	if err != nil {
@@ -210,7 +217,7 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 
 	if resp.Header.Get(headerTaAuthErr) == "" {
 		// セッションを保存。
-		if _, err := sys.addSession(&session{id: sess.Value, host: r.Host, taId: taId, cli: cli}, expiDate); err != nil {
+		if _, err := sys.addSession(&session{id: sess.Value, host: r.Host, taId: taId}, expiDate); err != nil {
 			err = erro.Wrap(err)
 			log.Err(erro.Unwrap(err))
 			log.Debug(err)
