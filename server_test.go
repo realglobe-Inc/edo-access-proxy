@@ -7,6 +7,7 @@ import (
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/handler"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -15,6 +16,35 @@ import (
 	"testing"
 	"time"
 )
+
+func TestReadHead(t *testing.T) {
+	original := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+	head, err := readHead(strings.NewReader(original), len(original)+1)
+	if err != io.EOF {
+		if err == nil {
+			t.Error(err)
+		} else {
+			t.Fatal(err)
+		}
+	} else if string(head) != original {
+		t.Error(string(head))
+	}
+
+	head, err = readHead(strings.NewReader(original), len(original))
+	if err != nil && err != io.EOF {
+		t.Fatal(err)
+	} else if string(head) != original {
+		t.Error(string(head))
+	}
+
+	head, err = readHead(strings.NewReader(original), len(original)-1)
+	if err != nil {
+		t.Fatal(err)
+	} else if string(head) != original[:len(original)-1] {
+		t.Error(string(head))
+	}
+}
 
 var testPriKey *rsa.PrivateKey
 var hndl handler.Handler
@@ -63,11 +93,12 @@ func newTestSystem() *system {
 		hashName:   "sha256",
 		sessCont:   driver.NewMemoryTimeLimitedKeyValueStore(0),
 		cliCont:    driver.NewMemoryTimeLimitedKeyValueStore(0),
+		threSize:   8192,
 	}
 }
 
-// 正常系。
-func TestNormal(t *testing.T) {
+// 正常系。事前検査無し。
+func TestNormalWithoutCheck(t *testing.T) {
 	// ////////////////////////////////
 	// hndl.SetLevel(level.ALL)
 	// defer hndl.SetLevel(level.INFO)
@@ -102,7 +133,6 @@ func TestNormal(t *testing.T) {
 	cli := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
 
 	// 素通りする。
-	dest.AddResponse(http.StatusOK, nil, nil)
 	dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
 	resp, err := cli.Get("http://localhost:" + strconv.Itoa(destPort) + "/")
@@ -181,6 +211,146 @@ func TestNormal(t *testing.T) {
 	reqCh = dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
 	resp, err = cli.Get("http://localhost:" + strconv.Itoa(destPort) + "/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Error("status is ", resp.StatusCode, " not ", http.StatusOK)
+	} else if resp.Header.Get(headerAccProxErr) != "" {
+		t.Error(headerAccProxErr + " is " + resp.Header.Get(headerAccProxErr))
+	} else if buff, err := ioutil.ReadAll(resp.Body); err != nil {
+		t.Fatal(err)
+	} else if string(buff) != "body da yo" {
+		t.Error("body is " + string(buff) + " not body da yo")
+	}
+
+	req = <-reqCh
+	if cookie, err := req.Cookie(cookieTaSess); err != nil {
+		t.Fatal(err)
+	} else if cookie.Value != sessId {
+		t.Error(cookieTaSess + " is " + cookie.Value + " not " + sessId)
+	}
+}
+
+// 正常系。事前検査あり。
+func TestNormalWithCheck(t *testing.T) {
+	////////////////////////////////
+	hndl.SetLevel(level.ALL)
+	defer hndl.SetLevel(level.INFO)
+	////////////////////////////////
+
+	// プロキシ先を用意。
+	destPort, err := util.FreePort()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dest, err := util.NewTestHttpServer(destPort)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dest.Close()
+
+	// テストするプロキシサーバーを用意。
+	port, err := util.FreePort()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sys := newTestSystem()
+	sys.threSize = 1
+	go serve(sys, "tcp", "", port, "http")
+
+	// サーバ起動待ち。
+	time.Sleep(10 * time.Millisecond)
+
+	proxyUrl, err := url.Parse("http://localhost:" + strconv.Itoa(port))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
+
+	// 素通りする。
+	dest.AddResponse(http.StatusOK, nil, nil)
+	dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
+
+	resp, err := cli.Post("http://localhost:"+strconv.Itoa(destPort)+"/", "text/plain", strings.NewReader("oi"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Error("status is ", resp.StatusCode, " not ", http.StatusOK)
+	} else if resp.Header.Get(headerAccProxErr) != "" {
+		t.Error(headerAccProxErr + " is " + resp.Header.Get(headerAccProxErr))
+	} else if buff, err := ioutil.ReadAll(resp.Body); err != nil {
+		t.Fatal(err)
+	} else if string(buff) != "body da yo" {
+		t.Error("body is " + string(buff) + " not body da yo")
+	}
+
+	// 認証する。
+	sessId := "session-da-yo"
+	token := "token-da-yo"
+	sys.priKeyCont.Put(sys.taId, testPriKey)
+	dest.AddResponse(http.StatusUnauthorized, map[string][]string{
+		"Set-Cookie":    []string{(&http.Cookie{Name: cookieTaSess, Value: sessId, Expires: time.Now().Add(10 * time.Second)}).String()},
+		headerTaAuthErr: []string{"start new session"},
+		headerTaToken:   []string{token},
+	}, nil)
+	reqCh := dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
+
+	resp, err = cli.Post("http://localhost:"+strconv.Itoa(destPort)+"/", "text/plain", strings.NewReader("oi"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Error("status is ", resp.StatusCode, " not ", http.StatusOK)
+	} else if resp.Header.Get(headerAccProxErr) != "" {
+		t.Error(headerAccProxErr + " is " + resp.Header.Get(headerAccProxErr))
+	} else if buff, err := ioutil.ReadAll(resp.Body); err != nil {
+		t.Fatal(err)
+	} else if string(buff) != "body da yo" {
+		t.Error("body is " + string(buff) + " not body da yo")
+	}
+
+	req := <-reqCh
+	if cookie, err := req.Cookie(cookieTaSess); err != nil {
+		t.Fatal(err)
+	} else if cookie.Value != sessId {
+		t.Error(cookieTaSess + " is " + cookie.Value + " not " + sessId)
+	}
+	if req.Header.Get(headerTaId) != sys.taId {
+		t.Error(headerTaId + " is " + req.Header.Get(headerTaId) + " not " + sys.taId)
+	}
+	if req.Header.Get(headerHashFunc) != sys.hashName {
+		t.Error(headerHashFunc + " is " + req.Header.Get(headerHashFunc) + " not " + sys.hashName)
+	}
+	if req.Header.Get(headerTaTokenSig) == "" {
+		t.Error(headerTaTokenSig + " is not exist")
+	}
+	rawSig, err := base64.StdEncoding.DecodeString(req.Header.Get(headerTaTokenSig))
+	if err != nil {
+		t.Fatal(err)
+	}
+	hash, err := util.ParseHashFunction(req.Header.Get(headerHashFunc))
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := hash.New()
+	h.Write([]byte(token))
+	if err := rsa.VerifyPKCS1v15(&testPriKey.PublicKey, hash, h.Sum(nil), rawSig); err != nil {
+		t.Fatal(err)
+	}
+
+	// 認証済み。
+	dest.AddResponse(http.StatusOK, nil, nil)
+	reqCh = dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
+
+	resp, err = cli.Post("http://localhost:"+strconv.Itoa(destPort)+"/", "text/plain", strings.NewReader("oi"))
 	if err != nil {
 		t.Fatal(err)
 	}

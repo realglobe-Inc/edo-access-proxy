@@ -61,6 +61,9 @@ type parameters struct {
 
 	// 同一ホスト用の http.Client の保持期間。
 	cliExpiDur time.Duration
+
+	// セッションの事前検査を行わないボディサイズの上限。
+	threSize int
 }
 
 func parseParameters(args ...string) (param *parameters, err error) {
@@ -98,8 +101,9 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.taId, "taId", "", "TA ID.")
 	flags.StringVar(&param.hashName, "hashName", "sha1", "Sign hash type.")
 
-	flags.DurationVar(&param.sessMargin, "sessMargin", time.Second, "Margin for session expiration date.")
-	flags.DurationVar(&param.cliExpiDur, "cliExpiDur", 10*time.Minute, "Client expiration date.")
+	flags.DurationVar(&param.sessMargin, "sessMargin", time.Second, "Margin for session expiration duration.")
+	flags.DurationVar(&param.cliExpiDur, "cliExpiDur", 10*time.Minute, "Client expiration duration.")
+	flags.IntVar(&param.threSize, "threSize", 8192, "Maximum byte size of request body for no session check.")
 
 	var config string
 	flags.StringVar(&config, "f", "", "Config file path.")

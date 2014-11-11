@@ -72,6 +72,7 @@ func mainCore(param *parameters) error {
 		param.hashName,
 		param.sessMargin,
 		param.cliExpiDur,
+		param.threSize,
 	)
 	return serve(sys, param.socType, param.socPath, param.socPort, param.protType)
 }

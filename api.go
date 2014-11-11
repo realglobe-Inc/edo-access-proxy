@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/base64"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -19,25 +21,43 @@ const (
 	headerTaToken    = "X-Edo-Ta-Token"
 	headerTaTokenSig = "X-Edo-Ta-Token-Sign"
 	headerHashFunc   = "X-Edo-Hash-Function"
-
 	headerAccProxErr = "X-Edo-Access-Proxy-Error"
-
-	headerTaAuthErr = "X-Edo-Ta-Auth-Error"
+	headerTaAuthErr  = "X-Edo-Ta-Auth-Error"
 
 	cookieTaSess = "X-Edo-Ta-Session"
 )
-
-// 1 回のリクエストにつきボディまで送るのは 1 回だけ。
-// 再送信のために毎回ボディのコピーを取っておくのは重いから。
-// そのため、有効期限内のセッションがプロキシ先で破棄されてしまった場合には必ず失敗する。
 
 // Web プロキシ。
 func proxyApi(sys *system, w http.ResponseWriter, r *http.Request) error {
 
 	if !strings.HasPrefix(r.RequestURI, "http://") && !strings.HasPrefix(r.RequestURI, "https://") {
+		// URL 指定がプロキシ形式になってない。
 		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "no scheme in request uri", nil))
 	}
 
+	buff, err := readHead(r.Body, sys.threSize)
+	if err != nil && err != io.EOF {
+		return erro.Wrap(err)
+	}
+
+	// err は nil か io.EOF。
+
+	if err != nil {
+		// 全部読み込めた。
+		log.Debug("body was completely read")
+
+		return tryForward(sys, w, r, buff)
+	} else {
+		// 全部は読めなかった。
+		log.Debug("body is larger than buffer size")
+
+		return checkAndForward(sys, w, r, buff)
+	}
+}
+
+// 転送してみる。
+// セッションが必要なのに確立できてないせいで失敗したら、セッションを確立させながらもう一回転送する。
+func tryForward(sys *system, w http.ResponseWriter, r *http.Request, body []byte) error {
 	taId := r.Header.Get(headerTaId)
 	if taId == "" {
 		taId = sys.taId
@@ -46,28 +66,21 @@ func proxyApi(sys *system, w http.ResponseWriter, r *http.Request) error {
 	sess, _, err := sys.session(r.Host, taId, nil)
 	if err != nil {
 		return erro.Wrap(err)
-	}
-
-	if sess != nil {
-		// セッション確立済み。
+	} else if sess != nil {
+		// セッションがある。
 		log.Debug("authenticated session is exist")
-		return forward(sys, w, r, taId, sess)
+		r.AddCookie(&http.Cookie{Name: cookieTaSess, Value: sess.id})
 	} else {
-		// セッション未確立。
+		// セッションが無い。
 		log.Debug("session is not exist")
-		return startSession(sys, w, r, taId)
 	}
-}
-
-// 転送する。
-func forward(sys *system, w http.ResponseWriter, r *http.Request, taId string, sess *session) error {
 	cli, err := sys.client(r.Host)
 	if err != nil {
 		return erro.Wrap(err)
 	}
-	r.AddCookie(&http.Cookie{Name: cookieTaSess, Value: sess.id})
-	r.RequestURI = ""
 
+	r.RequestURI = ""
+	r.Body = ioutil.NopCloser(bytes.NewReader(body))
 	////////////////////////////////////////////////////////////
 	util.LogRequest(r, true)
 	////////////////////////////////////////////////////////////
@@ -85,31 +98,120 @@ func forward(sys *system, w http.ResponseWriter, r *http.Request, taId string, s
 	util.LogResponse(resp, true)
 	////////////////////////////////////////////////////////////
 
-	log.Debug("forwarded")
+	if taAuthErr := (resp.Header.Get(headerTaAuthErr) != ""); taAuthErr {
+		if resp.StatusCode == http.StatusUnauthorized {
+			// セッションが必要なのに確立できていなかった。
+			log.Debug("first forwarding failed because of no valid session")
 
-	if resp.StatusCode == http.StatusUnauthorized && resp.Header.Get(headerTaAuthErr) != "" {
-		// セッションがプロキシ先で破棄されてしまっていた。
-		log.Debug("session was destroyed at destination")
+			if sess != nil {
+				log.Debug("remove old invalid session")
 
-		if err := sys.removeSession(sess); err != nil {
-			err = erro.Wrap(err)
-			log.Err(erro.Unwrap(err))
-			log.Debug(err)
+				// 古いセッションを削除。
+				if err := sys.removeSession(sess); err != nil {
+					return erro.Wrap(err)
+				}
+			}
+
+			return startSession(sys, w, r, body, resp)
+		} else {
+			// セッション云々以前のエラー。
+			log.Debug("first forwarding failed")
+
+			return copyResponse(resp, w)
 		}
 	}
+
+	// セッション確立済み、または、セッション不要だった。
+	log.Debug("first forwarding succeeded")
 
 	return copyResponse(resp, w)
 }
 
-// セッション開始。
-func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId string) error {
+// セッションを検査、または、確立してから転送する。
+func checkAndForward(sys *system, w http.ResponseWriter, r *http.Request, bodyHead []byte) error {
+	taId := r.Header.Get(headerTaId)
+	if taId == "" {
+		taId = sys.taId
+	}
 
+	req, err := http.NewRequest("HEAD", r.URL.String(), nil)
+	if err != nil {
+		return erro.Wrap(err)
+	}
+
+	sess, _, err := sys.session(r.Host, taId, nil)
+	if err != nil {
+		return erro.Wrap(err)
+	} else if sess != nil {
+		// セッションがある。
+		log.Debug("authenticated session is exist")
+		req.AddCookie(&http.Cookie{Name: cookieTaSess, Value: sess.id})
+	} else {
+		// セッションが無い。
+		log.Debug("session is not exist")
+	}
 	cli, err := sys.client(r.Host)
 	if err != nil {
 		return erro.Wrap(err)
 	}
 
-	resp, err := cli.Get(uriBase(r.URL))
+	////////////////////////////////////////////////////////////
+	util.LogRequest(req, true)
+	////////////////////////////////////////////////////////////
+	ckResp, err := cli.Do(req)
+	if err != nil {
+		err = erro.Wrap(err)
+		if isDestinationError(err) {
+			return erro.Wrap(util.NewHttpStatusError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
+		} else {
+			return err
+		}
+	}
+	defer ckResp.Body.Close()
+	////////////////////////////////////////////////////////////
+	util.LogResponse(ckResp, true)
+	////////////////////////////////////////////////////////////
+
+	if taAuthErr := (ckResp.Header.Get(headerTaAuthErr) != ""); taAuthErr {
+		if ckResp.StatusCode == http.StatusUnauthorized {
+			// セッションが必要なのに確立できていなかった。
+			log.Debug("first forwarding failed because of no valid session")
+
+			if sess != nil {
+				log.Debug("remove old invalid session")
+
+				// 古いセッションを削除。
+				if err := sys.removeSession(sess); err != nil {
+					return erro.Wrap(err)
+				}
+			}
+
+			return startSession(sys, w, r, bodyHead, ckResp)
+		} else {
+			// セッション云々以前のエラー。
+			log.Debug("check failed")
+
+			return copyResponse(ckResp, w)
+		}
+	}
+
+	// セッション確立済み、または、セッション不要だった。
+	log.Debug("check succeeded")
+
+	if sess != nil {
+		// セッションがある。
+		log.Debug("authenticated session is exist")
+		r.AddCookie(&http.Cookie{Name: cookieTaSess, Value: sess.id})
+	} else {
+		// セッションが無い。
+		log.Debug("session is not exist")
+	}
+	r.RequestURI = ""
+	r.Body = ioutil.NopCloser(io.MultiReader(bytes.NewReader(bodyHead), r.Body))
+	////////////////////////////////////////////////////////////
+	util.LogRequest(r, true)
+	////////////////////////////////////////////////////////////
+	resp, err := cli.Do(r)
 	if err != nil {
 		err = erro.Wrap(err)
 		if isDestinationError(err) {
@@ -123,43 +225,25 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 	util.LogResponse(resp, true)
 	////////////////////////////////////////////////////////////
 
-	log.Debug("sent raw request")
+	return copyResponse(resp, w)
+}
 
-	if resp.Header.Get(headerTaAuthErr) == "" {
-		// 認証が必要無かった。
-		log.Debug("authentication is not required")
-
-		r.RequestURI = ""
-		////////////////////////////////////////////////////////////
-		util.LogRequest(r, true)
-		////////////////////////////////////////////////////////////
-		resp, err = cli.Do(r)
-		if err != nil {
-			err = erro.Wrap(err)
-			if isDestinationError(err) {
-				return erro.Wrap(util.NewHttpStatusError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
-			} else {
-				return err
-			}
-		}
-		defer resp.Body.Close()
-		////////////////////////////////////////////////////////////
-		util.LogResponse(resp, true)
-		////////////////////////////////////////////////////////////
-		return copyResponse(resp, w)
-	} else if resp.StatusCode != http.StatusUnauthorized {
-		// 未認証以外のエラー。
-		return copyResponse(resp, w)
+// セッション開始レスポンスを受けてセッション開始しつつ転送する。
+func startSession(sys *system, w http.ResponseWriter, r *http.Request, bodyHead []byte, ckResp *http.Response) error {
+	taId := r.Header.Get(headerTaId)
+	if taId == "" {
+		taId = sys.taId
 	}
 
-	// プロキシ先も認証始めた。
-	log.Debug("authentication started")
-
-	sess, sessToken := parseSession(resp)
+	sess, sessToken := parseSession(ckResp)
 	if sess == nil {
 		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "no cookie "+cookieTaSess, nil))
 	} else if sessToken == "" {
 		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "no header field "+headerTaToken, nil))
+	}
+	cli, err := sys.client(r.Host)
+	if err != nil {
+		return erro.Wrap(err)
 	}
 
 	expiDate := getExpirationDate(sess, sys.sessMargin)
@@ -195,10 +279,11 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, taId stri
 	r.Header.Set(headerTaTokenSig, tokenSign)
 	r.Header.Set(headerHashFunc, hashName)
 	r.RequestURI = ""
+	r.Body = ioutil.NopCloser(io.MultiReader(bytes.NewReader(bodyHead), r.Body))
 	////////////////////////////////////////////////////////////
 	util.LogRequest(r, true)
 	////////////////////////////////////////////////////////////
-	resp, err = cli.Do(r)
+	resp, err := cli.Do(r)
 	if err != nil {
 		err = erro.Wrap(err)
 		if isDestinationError(err) {
@@ -319,4 +404,26 @@ func getExpirationDate(sess *http.Cookie, margin time.Duration) (expiDate time.T
 	} else {
 		return time.Time{}
 	}
+}
+
+// io.Reader から最初の maxSize までを読む。
+func readHead(src io.Reader, maxSize int) (head []byte, err error) {
+	buff := make([]byte, maxSize)
+	for remainBuff := buff; len(remainBuff) > 0; {
+		l, err := src.Read(remainBuff)
+		if l > 0 {
+			remainBuff = remainBuff[l:]
+		}
+		if err != nil {
+			if err == io.EOF {
+				// 全部バッファに読めた。
+				return buff[:len(buff)-len(remainBuff)], err
+			} else {
+				// 読み込みエラー。
+				return nil, erro.Wrap(err)
+			}
+		}
+	}
+	// バッファが一杯になった。
+	return buff, nil
 }

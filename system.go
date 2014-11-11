@@ -19,9 +19,11 @@ type system struct {
 
 	cliCont    driver.TimeLimitedKeyValueStore
 	cliExpiDur time.Duration
+
+	threSize int // セッションの事前検査を行わないボディサイズの上限。
 }
 
-func newSystem(priKeyCont driver.KeyValueStore, taId string, hashName string, sessMargin, cliExpiDur time.Duration) *system {
+func newSystem(priKeyCont driver.KeyValueStore, taId string, hashName string, sessMargin, cliExpiDur time.Duration, threSize int) *system {
 	return &system{
 		priKeyCont: priKeyCont,
 		taId:       taId,
@@ -30,6 +32,7 @@ func newSystem(priKeyCont driver.KeyValueStore, taId string, hashName string, se
 		sessMargin: sessMargin,
 		cliCont:    driver.NewMemoryTimeLimitedKeyValueStore(0),
 		cliExpiDur: cliExpiDur,
+		threSize:   threSize,
 	}
 }
 
