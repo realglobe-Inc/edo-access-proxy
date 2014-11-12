@@ -62,7 +62,7 @@ type parameters struct {
 	// 同一ホスト用の http.Client の保持期間。
 	cliExpiDur time.Duration
 
-	// セッションの事前検査を行わないボディサイズの上限。
+	// セッションを事前に検査するボディサイズの下限。
 	threSize int
 }
 

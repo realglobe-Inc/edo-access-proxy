@@ -407,23 +407,18 @@ func getExpirationDate(sess *http.Cookie, margin time.Duration) (expiDate time.T
 }
 
 // io.Reader から最初の maxSize までを読む。
+// 読み込めるサイズが maxSize 未満だった場合のみ EOF を返す。
 func readHead(src io.Reader, maxSize int) (head []byte, err error) {
 	buff := make([]byte, maxSize)
-	for remainBuff := buff; len(remainBuff) > 0; {
-		l, err := src.Read(remainBuff)
-		if l > 0 {
-			remainBuff = remainBuff[l:]
-		}
-		if err != nil {
-			if err == io.EOF {
-				// 全部バッファに読めた。
-				return buff[:len(buff)-len(remainBuff)], err
-			} else {
-				// 読み込みエラー。
-				return nil, erro.Wrap(err)
-			}
-		}
+	switch n, err := io.ReadFull(src, buff); err {
+	case nil:
+		// バッファが埋まった。
+		return buff, nil
+	case io.EOF, io.ErrUnexpectedEOF:
+		// 全部バッファに入った。
+		return buff[:n], io.EOF
+	default:
+		// 読み込みエラー。
+		return nil, erro.Wrap(err)
 	}
-	// バッファが一杯になった。
-	return buff, nil
 }

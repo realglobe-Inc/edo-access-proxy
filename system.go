@@ -20,7 +20,7 @@ type system struct {
 	cliCont    driver.TimeLimitedKeyValueStore
 	cliExpiDur time.Duration
 
-	threSize int // セッションの事前検査を行わないボディサイズの上限。
+	threSize int // セッションを事前に検査するボディサイズの下限。
 }
 
 func newSystem(priKeyCont driver.KeyValueStore, taId string, hashName string, sessMargin, cliExpiDur time.Duration, threSize int) *system {
