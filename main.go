@@ -21,7 +21,7 @@ func main() {
 	defer exit()
 	defer rglog.Flush()
 
-	hndl := util.InitLog("github.com/realglobe-Inc")
+	hndl := util.InitConsoleLog("github.com/realglobe-Inc")
 
 	param, err := parseParameters(os.Args...)
 	if err != nil {

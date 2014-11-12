@@ -82,7 +82,7 @@ D8/JxZKNMEyxS8BvCPYqhobhlCqwHtc6wpSWC++fU79xvFrb/X+nVQ==
 		panic(err)
 	}
 
-	hndl = util.InitLog("github.com/realglobe-Inc")
+	hndl = util.InitConsoleLog("github.com/realglobe-Inc")
 	hndl.SetLevel(level.OFF)
 }
 
