@@ -21,7 +21,7 @@ func main() {
 	defer exit()
 	defer rglog.Flush()
 
-	hndl := util.InitConsoleLog("github.com/realglobe-Inc")
+	util.InitConsoleLog("github.com/realglobe-Inc")
 
 	param, err := parseParameters(os.Args...)
 	if err != nil {
@@ -31,7 +31,7 @@ func main() {
 		return
 	}
 
-	hndl.SetLevel(param.consLv)
+	util.SetupConsoleLog("github.com/realglobe-Inc", param.consLv)
 	if err := util.SetupLog("github.com/realglobe-Inc", param.logType, param.logLv, param.logPath, param.fluAddr, param.fluTag); err != nil {
 		log.Err(erro.Unwrap(err))
 		log.Debug(err)
