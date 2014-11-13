@@ -47,7 +47,6 @@ func TestReadHead(t *testing.T) {
 }
 
 var testPriKey *rsa.PrivateKey
-var hndl handler.Handler
 
 func init() {
 	var err error
@@ -81,7 +80,11 @@ D8/JxZKNMEyxS8BvCPYqhobhlCqwHtc6wpSWC++fU79xvFrb/X+nVQ==
 	if err != nil {
 		panic(err)
 	}
+}
 
+var hndl handler.Handler
+
+func init() {
 	hndl = util.InitConsoleLog("github.com/realglobe-Inc")
 	hndl.SetLevel(level.OFF)
 }
@@ -236,10 +239,10 @@ func TestNormalWithoutCheck(t *testing.T) {
 
 // 正常系。事前検査あり。
 func TestNormalWithCheck(t *testing.T) {
-	////////////////////////////////
-	hndl.SetLevel(level.ALL)
-	defer hndl.SetLevel(level.INFO)
-	////////////////////////////////
+	// ////////////////////////////////
+	// hndl.SetLevel(level.ALL)
+	// defer hndl.SetLevel(level.INFO)
+	// ////////////////////////////////
 
 	// プロキシ先を用意。
 	destPort, err := util.FreePort()
