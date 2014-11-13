@@ -936,3 +936,74 @@ func TestBigRequest(t *testing.T) {
 		t.Error(buff)
 	}
 }
+
+// 全部読んだらメモリから溢れるようなレスポンスの処理。
+func TestBigResponse(t *testing.T) {
+	// リクエストを無視して巨大な返答を返すプロキシ先を用意。
+	errCh := make(chan error, 100)
+	destLis, err := net.Listen("tcp", ":0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer destLis.Close()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		buff := make([]byte, (1 << 21) /* 2 MB */)
+		for n := 0; n < (1 << 35); {
+			l, err := w.Write(buff)
+			if err != nil {
+				errCh <- err
+				return
+			}
+			n += l
+		}
+	})
+	go func() {
+		http.Serve(destLis, mux)
+	}()
+
+	// テストするプロキシサーバーを用意。
+	port, err := util.FreePort()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sys := newTestSystem()
+	go serve(sys, "tcp", "", port, "http")
+
+	// サーバ起動待ち。
+	time.Sleep(10 * time.Millisecond)
+
+	proxyUrl, err := url.Parse("http://localhost:" + strconv.Itoa(port))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
+
+	resp, err := cli.Get("http://" + destLis.Addr().String() + "/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	buff := make([]byte, 8192)
+	for {
+		_, err := resp.Body.Read(buff)
+		if err != nil {
+			if err == io.EOF {
+				break
+			} else {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Error(resp)
+	}
+
+	select {
+	case err := <-errCh:
+		t.Fatal(err)
+	default:
+	}
+}
