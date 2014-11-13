@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
+	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"io"
 	"io/ioutil"
 	"net"
@@ -81,9 +82,8 @@ func tryForward(sys *system, w http.ResponseWriter, r *http.Request, body []byte
 
 	r.RequestURI = ""
 	r.Body = ioutil.NopCloser(bytes.NewReader(body))
-	////////////////////////////////////////////////////////////
-	util.LogRequest(r, true)
-	////////////////////////////////////////////////////////////
+
+	util.LogRequest(level.DEBUG, r, true)
 	resp, err := cli.Do(r)
 	if err != nil {
 		err = erro.Wrap(err)
@@ -94,9 +94,7 @@ func tryForward(sys *system, w http.ResponseWriter, r *http.Request, body []byte
 		}
 	}
 	defer resp.Body.Close()
-	////////////////////////////////////////////////////////////
-	util.LogResponse(resp, true)
-	////////////////////////////////////////////////////////////
+	util.LogResponse(level.DEBUG, resp, true)
 
 	if taAuthErr := (resp.Header.Get(headerTaAuthErr) != ""); taAuthErr {
 		if resp.StatusCode == http.StatusUnauthorized {
@@ -155,9 +153,7 @@ func checkAndForward(sys *system, w http.ResponseWriter, r *http.Request, bodyHe
 		return erro.Wrap(err)
 	}
 
-	////////////////////////////////////////////////////////////
-	util.LogRequest(req, true)
-	////////////////////////////////////////////////////////////
+	util.LogRequest(level.DEBUG, req, true)
 	ckResp, err := cli.Do(req)
 	if err != nil {
 		err = erro.Wrap(err)
@@ -168,9 +164,7 @@ func checkAndForward(sys *system, w http.ResponseWriter, r *http.Request, bodyHe
 		}
 	}
 	defer ckResp.Body.Close()
-	////////////////////////////////////////////////////////////
-	util.LogResponse(ckResp, true)
-	////////////////////////////////////////////////////////////
+	util.LogResponse(level.DEBUG, ckResp, true)
 
 	if taAuthErr := (ckResp.Header.Get(headerTaAuthErr) != ""); taAuthErr {
 		if ckResp.StatusCode == http.StatusUnauthorized {
@@ -208,9 +202,8 @@ func checkAndForward(sys *system, w http.ResponseWriter, r *http.Request, bodyHe
 	}
 	r.RequestURI = ""
 	r.Body = ioutil.NopCloser(io.MultiReader(bytes.NewReader(bodyHead), r.Body))
-	////////////////////////////////////////////////////////////
-	util.LogRequest(r, true)
-	////////////////////////////////////////////////////////////
+
+	util.LogRequest(level.DEBUG, r, true)
 	resp, err := cli.Do(r)
 	if err != nil {
 		err = erro.Wrap(err)
@@ -221,9 +214,7 @@ func checkAndForward(sys *system, w http.ResponseWriter, r *http.Request, bodyHe
 		}
 	}
 	defer resp.Body.Close()
-	////////////////////////////////////////////////////////////
-	util.LogResponse(resp, true)
-	////////////////////////////////////////////////////////////
+	util.LogResponse(level.DEBUG, resp, true)
 
 	return copyResponse(resp, w)
 }
@@ -280,9 +271,8 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, bodyHead 
 	r.Header.Set(headerHashFunc, hashName)
 	r.RequestURI = ""
 	r.Body = ioutil.NopCloser(io.MultiReader(bytes.NewReader(bodyHead), r.Body))
-	////////////////////////////////////////////////////////////
-	util.LogRequest(r, true)
-	////////////////////////////////////////////////////////////
+
+	util.LogRequest(level.DEBUG, r, true)
 	resp, err := cli.Do(r)
 	if err != nil {
 		err = erro.Wrap(err)
@@ -293,9 +283,7 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, bodyHead 
 		}
 	}
 	defer resp.Body.Close()
-	////////////////////////////////////////////////////////////
-	util.LogResponse(resp, true)
-	////////////////////////////////////////////////////////////
+	util.LogResponse(level.DEBUG, resp, true)
 
 	// 認証された。
 	log.Debug("authentication finished")
