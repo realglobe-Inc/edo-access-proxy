@@ -855,3 +855,84 @@ func TestNoSignKey(t *testing.T) {
 		t.Error("no " + headerAccProxErr)
 	}
 }
+
+// 全部読んだらメモリから溢れるようなリクエストの転送。
+func TestBigRequest(t *testing.T) {
+	// リクエストを全部捨てて一言返すだけのプロキシ先を用意。
+	destLis, err := net.Listen("tcp", ":0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer destLis.Close()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		buff := make([]byte, 8192)
+		for {
+			_, err := r.Body.Read(buff)
+			if err != nil {
+				if err == io.EOF {
+					w.Write([]byte("zenbu yonda"))
+					return
+				} else {
+					w.WriteHeader(http.StatusInternalServerError)
+					w.Write([]byte("zenbu yomenakatta"))
+					return
+				}
+			}
+		}
+	})
+	go func() {
+		http.Serve(destLis, mux)
+	}()
+
+	// テストするプロキシサーバーを用意。
+	port, err := util.FreePort()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sys := newTestSystem()
+	go serve(sys, "tcp", "", port, "http")
+
+	// サーバ起動待ち。
+	time.Sleep(10 * time.Millisecond)
+
+	proxyUrl, err := url.Parse("http://localhost:" + strconv.Itoa(port))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
+
+	errCh := make(chan error, 1)
+	rPipe, wPipe := io.Pipe()
+	go func() {
+		defer wPipe.Close()
+		buff := make([]byte, (1 << 21) /* 2 MB */)
+		for n := 0; n < (1 << 35); /* 32 GB */ {
+			l, err := wPipe.Write(buff)
+			if err != nil {
+				errCh <- err
+				return
+			}
+			n += l
+		}
+		errCh <- nil
+	}()
+
+	resp, err := cli.Post("http://"+destLis.Addr().String()+"/", "text/plain", rPipe)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if err := <-errCh; err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Error(resp)
+	} else if buff, err := ioutil.ReadAll(resp.Body); err != nil {
+		t.Fatal(err)
+	} else if string(buff) != "zenbu yonda" {
+		t.Error(buff)
+	}
+}
