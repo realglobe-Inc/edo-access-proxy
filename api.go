@@ -18,14 +18,17 @@ import (
 )
 
 const (
-	headerTaId       = "X-Edo-Ta-Id"
-	headerTaToken    = "X-Edo-Ta-Token"
-	headerTaTokenSig = "X-Edo-Ta-Token-Sign"
-	headerHashFunc   = "X-Edo-Hash-Function"
 	headerAccProxErr = "X-Edo-Access-Proxy-Error"
-	headerTaAuthErr  = "X-Edo-Ta-Auth-Error"
 
-	cookieTaSess = "X-Edo-Ta-Session"
+	headerTaId = "X-Edo-Ta-Id"
+
+	headerAuthTaErr      = "X-Edo-Auth-Ta-Error"
+	headerAuthTaId       = "X-Edo-Auth-Ta-Id"
+	headerAuthTaToken    = "X-Edo-Auth-Ta-Token"
+	headerAuthTaTokenSig = "X-Edo-Auth-Ta-Token-Sign"
+	headerAuthHashFunc   = "X-Edo-Auth-Hash-Function"
+
+	cookieTaSess = "X-Edo-Auth-Ta-Session"
 )
 
 // Web プロキシ。
@@ -96,7 +99,7 @@ func tryForward(sys *system, w http.ResponseWriter, r *http.Request, body []byte
 	defer resp.Body.Close()
 	util.LogResponse(level.DEBUG, resp, true)
 
-	if taAuthErr := (resp.Header.Get(headerTaAuthErr) != ""); taAuthErr {
+	if taAuthErr := (resp.Header.Get(headerAuthTaErr) != ""); taAuthErr {
 		if resp.StatusCode == http.StatusUnauthorized {
 			// セッションが必要なのに確立できていなかった。
 			log.Debug("first forwarding failed because of no valid session")
@@ -166,7 +169,7 @@ func checkAndForward(sys *system, w http.ResponseWriter, r *http.Request, bodyHe
 	defer ckResp.Body.Close()
 	util.LogResponse(level.DEBUG, ckResp, true)
 
-	if taAuthErr := (ckResp.Header.Get(headerTaAuthErr) != ""); taAuthErr {
+	if taAuthErr := (ckResp.Header.Get(headerAuthTaErr) != ""); taAuthErr {
 		if ckResp.StatusCode == http.StatusUnauthorized {
 			// セッションが必要なのに確立できていなかった。
 			log.Debug("first forwarding failed because of no valid session")
@@ -230,7 +233,7 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, bodyHead 
 	if sess == nil {
 		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "no cookie "+cookieTaSess, nil))
 	} else if sessToken == "" {
-		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "no header field "+headerTaToken, nil))
+		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "no header field "+headerAuthTaToken, nil))
 	}
 	cli, err := sys.client(r.Host)
 	if err != nil {
@@ -252,7 +255,7 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, bodyHead 
 	// 秘密鍵を用意できた。
 	log.Debug("private key of " + taId + " is exist")
 
-	hashName := r.Header.Get(headerHashFunc)
+	hashName := r.Header.Get(headerAuthHashFunc)
 	if hashName == "" {
 		hashName = sys.hashName
 	}
@@ -266,9 +269,9 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, bodyHead 
 	log.Debug("signed")
 
 	r.AddCookie(&http.Cookie{Name: cookieTaSess, Value: sess.Value})
-	r.Header.Set(headerTaId, taId)
-	r.Header.Set(headerTaTokenSig, tokenSign)
-	r.Header.Set(headerHashFunc, hashName)
+	r.Header.Set(headerAuthTaId, taId)
+	r.Header.Set(headerAuthTaTokenSig, tokenSign)
+	r.Header.Set(headerAuthHashFunc, hashName)
 	r.RequestURI = ""
 	r.Body = ioutil.NopCloser(io.MultiReader(bytes.NewReader(bodyHead), r.Body))
 
@@ -288,7 +291,7 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, bodyHead 
 	// 認証された。
 	log.Debug("authentication finished")
 
-	if resp.Header.Get(headerTaAuthErr) == "" {
+	if resp.Header.Get(headerAuthTaErr) == "" {
 		// セッションを保存。
 		if _, err := sys.addSession(&session{id: sess.Value, host: r.Host, taId: taId}, expiDate); err != nil {
 			err = erro.Wrap(err)
@@ -342,7 +345,7 @@ func parseSession(resp *http.Response) (sess *http.Cookie, sessToken string) {
 		}
 	}
 
-	return sess, resp.Header.Get(headerTaToken)
+	return sess, resp.Header.Get(headerAuthTaToken)
 }
 
 // プロキシ先からのレスポンスをリクエスト元へのレスポンスに写す。
