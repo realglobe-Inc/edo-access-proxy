@@ -57,7 +57,7 @@ func mainCore(param *parameters) error {
 	switch param.priKeyContType {
 	case "file":
 		priKeyCont = driver.NewFileKeyValueStore(param.priKeyContPath, func(before string) string {
-			return before + ".pem"
+			return before + ".key"
 		}, nil, func(data []byte) (interface{}, error) {
 			return util.ParseRsaPrivateKey(string(data))
 		}, param.caExpiDur)
