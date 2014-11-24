@@ -83,7 +83,7 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.Var(level.Var(&param.consLv, level.INFO), "consLv", "Console log level.")
 	flags.StringVar(&param.logType, "logType", "", "Extra log type.")
 	flags.Var(level.Var(&param.logLv, level.ALL), "logLv", "Extra log level.")
-	flags.StringVar(&param.logPath, "logPath", filepath.Join(os.TempDir(), "edo-"+label+".log"), "File log path.")
+	flags.StringVar(&param.logPath, "logPath", filepath.Join(os.TempDir(), "edo", label+".log"), "File log path.")
 	flags.StringVar(&param.fluAddr, "fluAddr", "localhost:24224", "fluentd address.")
 	flags.StringVar(&param.fluTag, "fluTag", "edo."+label, "fluentd tag.")
 
