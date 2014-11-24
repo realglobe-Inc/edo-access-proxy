@@ -95,12 +95,12 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.IntVar(&param.socPort, "socPort", 16051, "TCP socket port.")
 	flags.StringVar(&param.protType, "protType", "http", "Protocol type.")
 
-	flags.DurationVar(&param.caExpiDur, "caExpiDur", time.Hour, "Cache expiration duration.")
+	flags.DurationVar(&param.caExpiDur, "caExpiDur", 10*time.Minute, "Cache expiration duration.")
 
 	flags.StringVar(&param.taId, "taId", "", "TA ID.")
-	flags.StringVar(&param.hashName, "hashName", "sha1", "Sign hash type.")
+	flags.StringVar(&param.hashName, "hashName", "sha256", "Sign hash type.")
 
-	flags.DurationVar(&param.sessMargin, "sessMargin", time.Second, "Margin for session expiration duration.")
+	flags.DurationVar(&param.sessMargin, "sessMargin", time.Minute, "Margin for session expiration duration.")
 	flags.DurationVar(&param.cliExpiDur, "cliExpiDur", 10*time.Minute, "Client expiration duration.")
 	flags.IntVar(&param.threSize, "threSize", 8192, "Maximum byte size of request body for no session check.")
 
