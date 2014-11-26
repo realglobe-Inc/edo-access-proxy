@@ -68,9 +68,9 @@ type parameters struct {
 
 func parseParameters(args ...string) (param *parameters, err error) {
 
-	const label = "access-proxy"
+	const label = "edo-access-proxy"
 
-	flags := util.NewFlagSet("edo-"+label+" parameters", flag.ExitOnError)
+	flags := util.NewFlagSet(label+" parameters", flag.ExitOnError)
 	flags.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage:")
 		fmt.Fprintln(os.Stderr, "  "+args[0]+" [{FLAG}...]")
@@ -83,26 +83,26 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.Var(level.Var(&param.consLv, level.INFO), "consLv", "Console log level.")
 	flags.StringVar(&param.logType, "logType", "", "Extra log type.")
 	flags.Var(level.Var(&param.logLv, level.ALL), "logLv", "Extra log level.")
-	flags.StringVar(&param.logPath, "logPath", filepath.Join(os.TempDir(), "edo", label+".log"), "File log path.")
+	flags.StringVar(&param.logPath, "logPath", filepath.Join(filepath.Dir(os.Args[0]), "log", label+".log"), "File log path.")
 	flags.StringVar(&param.fluAddr, "fluAddr", "localhost:24224", "fluentd address.")
 	flags.StringVar(&param.fluTag, "fluTag", "edo."+label, "fluentd tag.")
 
 	flags.StringVar(&param.priKeyContType, "priKeyContType", "file", "Private key container type.")
-	flags.StringVar(&param.priKeyContPath, "priKeyContPath", filepath.Join("sandbox", "private-key"), "Private key container directory.")
+	flags.StringVar(&param.priKeyContPath, "priKeyContPath", filepath.Join(filepath.Dir(os.Args[0]), "private_keys"), "Private key container directory.")
 
 	flags.StringVar(&param.socType, "socType", "tcp", "Socket type.")
-	flags.StringVar(&param.socPath, "socPath", filepath.Join(os.TempDir(), "edo", label), "UNIX socket path.")
+	flags.StringVar(&param.socPath, "socPath", filepath.Join(filepath.Dir(os.Args[0]), "run", label+".soc"), "UNIX socket path.")
 	flags.IntVar(&param.socPort, "socPort", 16051, "TCP socket port.")
 	flags.StringVar(&param.protType, "protType", "http", "Protocol type.")
 
 	flags.DurationVar(&param.caExpiDur, "caExpiDur", 10*time.Minute, "Cache expiration duration.")
 
-	flags.StringVar(&param.taId, "taId", "", "TA ID.")
+	flags.StringVar(&param.taId, "taId", "", "Default TA ID.")
 	flags.StringVar(&param.hashName, "hashName", "sha256", "Sign hash type.")
 
 	flags.DurationVar(&param.sessMargin, "sessMargin", time.Minute, "Margin for session expiration duration.")
 	flags.DurationVar(&param.cliExpiDur, "cliExpiDur", 10*time.Minute, "Client expiration duration.")
-	flags.IntVar(&param.threSize, "threSize", 8192, "Maximum byte size of request body for no session check.")
+	flags.IntVar(&param.threSize, "threSize", 8192, "Maximum byte size of request body for skipping session check.")
 
 	var config string
 	flags.StringVar(&config, "f", "", "Config file path.")
