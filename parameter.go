@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
-	"github.com/realglobe-Inc/go-lib-rg/file"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"io/ioutil"
 	"os"
@@ -111,15 +110,12 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	// 設定ファイルを読んで、また実行引数を読む。
 	flags.Parse(args[1:])
 	if config != "" {
-		if exist, err := file.IsExist(config); err != nil {
-			return nil, erro.Wrap(err)
-		} else if !exist {
-			log.Warn("Config file " + config + " is not exist.")
-		} else {
-			buff, err := ioutil.ReadFile(config)
-			if err != nil {
+		if buff, err := ioutil.ReadFile(config); err != nil {
+			if !os.IsNotExist(err) {
 				return nil, erro.Wrap(err)
 			}
+			log.Warn("Config file " + config + " is not exist.")
+		} else {
 			flags.CompleteParse(strings.Fields(string(buff)))
 		}
 	}
