@@ -18,6 +18,7 @@ import (
 )
 
 const (
+	headerAccProxUri = "X-Edo-Access-Proxy-Uri"
 	headerAccProxErr = "X-Edo-Access-Proxy-Error"
 
 	headerTaId = "X-Edo-Ta-Id"
@@ -34,7 +35,17 @@ const (
 // Web プロキシ。
 func proxyApi(sys *system, w http.ResponseWriter, r *http.Request) error {
 
-	if !strings.HasPrefix(r.RequestURI, "http://") && !strings.HasPrefix(r.RequestURI, "https://") {
+	if rawUri := r.Header.Get(headerAccProxUri); rawUri != "" {
+		// ヘッダによる指定。
+		if u, err := url.Parse(rawUri); err != nil {
+			// URL 指定がおかしい。
+			return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "invalid uri "+rawUri, erro.Wrap(err)))
+		} else {
+			r.Header.Del(headerAccProxUri)
+			r.URL = u
+			r.Host = u.Host
+		}
+	} else if !strings.HasPrefix(r.RequestURI, "http://") && !strings.HasPrefix(r.RequestURI, "https://") {
 		// URL 指定がプロキシ形式になってない。
 		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "no scheme in request uri", nil))
 	}
