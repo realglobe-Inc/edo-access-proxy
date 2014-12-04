@@ -628,6 +628,89 @@ func TestSpecifyTa(t *testing.T) {
 	}
 }
 
+// ヘッダフィールドで宛先を指定できるか。
+func TestSpecifyDestination(t *testing.T) {
+	// ////////////////////////////////
+	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
+	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
+
+	// プロキシ先を用意。
+	destPort, err := util.FreePort()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dest, err := util.NewTestHttpServer(destPort)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dest.Close()
+
+	// テストするプロキシサーバーを用意。
+	port, err := util.FreePort()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sys := newTestSystem()
+	go serve(sys, "tcp", "", port, "http")
+
+	// サーバ起動待ち。
+	time.Sleep(10 * time.Millisecond)
+
+	cli := &http.Client{}
+
+	// 認証する。
+	sessId := "session-da-yo"
+	token := "token-da-yo"
+	taId := "chigau-ta-no-id"
+	sys.priKeyCont.Put(taId, testPriKey)
+	dest.AddResponse(http.StatusUnauthorized, map[string][]string{
+		"Set-Cookie":      []string{(&http.Cookie{Name: cookieTaSess, Value: sessId, Expires: time.Now().Add(10 * time.Second)}).String()},
+		headerAuthTaErr:   []string{"start new session"},
+		headerAuthTaToken: []string{token},
+	}, nil)
+	reqCh := dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
+
+	req, err := http.NewRequest("GET", "http://localhost:"+strconv.Itoa(port), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set(headerTaId, taId)
+	req.Header.Set(headerAccProxUri, "http://localhost:"+strconv.Itoa(destPort)+"/")
+
+	resp, err := cli.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	req = <-reqCh
+	if req.Header.Get(headerTaId) != taId {
+		t.Error(headerTaId + " is " + req.Header.Get(headerTaId) + " not " + taId)
+	}
+
+	// 認証済み。
+	reqCh = dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
+
+	req, err = http.NewRequest("GET", "http://localhost:"+strconv.Itoa(port), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set(headerTaId, taId)
+	req.Header.Set(headerAccProxUri, "http://localhost:"+strconv.Itoa(destPort)+"/")
+
+	resp, err = cli.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	req = <-reqCh
+	if req.Header.Get(headerTaId) != taId {
+		t.Error(headerTaId + " is " + req.Header.Get(headerTaId) + " not " + taId)
+	}
+}
+
 // プロキシ先に届かないときに 404 を返すか。
 func TestNoDestination(t *testing.T) {
 	// ////////////////////////////////
