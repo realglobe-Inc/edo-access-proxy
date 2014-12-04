@@ -76,7 +76,7 @@ func (sys *system) privateKey(taId string, caStmp *driver.Stamp) (priKey *rsa.Pr
 }
 
 var noVerifyTr = &http.Transport{
-	TLSClientConfig: &tls.Config{InsecureSkipVerify: false},
+	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 }
 
 func (sys *system) client(host string) (cli *http.Client, err error) {
