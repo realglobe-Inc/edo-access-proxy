@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/rsa"
+	"crypto/tls"
 	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"net/http"
@@ -21,9 +22,11 @@ type system struct {
 	cliExpiDur time.Duration
 
 	threSize int // セッションを事前に検査するボディサイズの下限。
+
+	noVerify bool // SSL 証明書を検証するか。
 }
 
-func newSystem(priKeyCont driver.KeyValueStore, taId string, hashName string, sessMargin, cliExpiDur time.Duration, threSize int) *system {
+func newSystem(priKeyCont driver.KeyValueStore, taId string, hashName string, sessMargin, cliExpiDur time.Duration, threSize int, noVerify bool) *system {
 	return &system{
 		priKeyCont: priKeyCont,
 		taId:       taId,
@@ -33,6 +36,7 @@ func newSystem(priKeyCont driver.KeyValueStore, taId string, hashName string, se
 		cliCont:    driver.NewMemoryTimeLimitedKeyValueStore(0),
 		cliExpiDur: cliExpiDur,
 		threSize:   threSize,
+		noVerify:   noVerify,
 	}
 }
 
@@ -71,13 +75,21 @@ func (sys *system) privateKey(taId string, caStmp *driver.Stamp) (priKey *rsa.Pr
 	return value.(*rsa.PrivateKey), newCaStmp, nil
 }
 
+var noVerifyTr = &http.Transport{
+	TLSClientConfig: &tls.Config{InsecureSkipVerify: false},
+}
+
 func (sys *system) client(host string) (cli *http.Client, err error) {
 	value, _, err := sys.cliCont.Get(host, nil)
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
 	if value == nil {
-		cli = &http.Client{}
+		if sys.noVerify {
+			cli = &http.Client{Transport: noVerifyTr}
+		} else {
+			cli = &http.Client{}
+		}
 	} else {
 		cli = value.(*http.Client)
 	}

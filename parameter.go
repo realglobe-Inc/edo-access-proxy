@@ -63,6 +63,9 @@ type parameters struct {
 
 	// セッションを事前に検査するボディサイズの下限。
 	threSize int
+
+	// SSL 証明書を検証しない。
+	noVerify bool
 }
 
 func parseParameters(args ...string) (param *parameters, err error) {
@@ -102,6 +105,7 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.DurationVar(&param.sessMargin, "sessMargin", time.Minute, "Margin for session expiration duration.")
 	flags.DurationVar(&param.cliExpiDur, "cliExpiDur", 10*time.Minute, "Client expiration duration.")
 	flags.IntVar(&param.threSize, "threSize", 8192, "Maximum byte size of request body for skipping session check.")
+	flags.BoolVar(&param.noVerify, "noVerify", false, "Skipping SSL verification.")
 
 	var config string
 	flags.StringVar(&config, "f", "", "Config file path.")

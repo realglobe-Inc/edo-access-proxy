@@ -73,6 +73,7 @@ func mainCore(param *parameters) error {
 		param.sessMargin,
 		param.cliExpiDur,
 		param.threSize,
+		param.noVerify,
 	)
 	return serve(sys, param.socType, param.socPath, param.socPort, param.protType)
 }
