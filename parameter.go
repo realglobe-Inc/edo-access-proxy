@@ -17,38 +17,35 @@ type parameters struct {
 	// 画面表示ログ。
 	consLv level.Level
 
-	// 追加ログ。
+	// 追加ログ種別。
 	logType string
-	logLv   level.Level
-
-	// ファイルログ。
+	// 追加ログ表示重要度。
+	logLv level.Level
+	// ログファイルパス。
 	logPath string
-
-	// fluentd ログ。
+	// fluentd アドレス。
 	fluAddr string
-	fluTag  string
+	// fluentd 用タグ。
+	fluTag string
 
 	// 秘密鍵置き場。
 	priKeyContType string
-
 	// ファイルベース秘密鍵置き場。
 	priKeyContPath string
 
-	// ソケット。
+	// ソケット種別。
 	socType string
-
 	// UNIX ソケット。
 	socPath string
-
 	// TCP ソケット。
 	socPort int
 
-	// プロトコル。
+	// プロトコル種別。
 	protType string
 
 	// キャッシュを最新とみなす期間。
 	caStaleDur time.Duration
-	// キャッシュの有効期間。
+	// キャッシュを廃棄するまでの期間。
 	caExpiDur time.Duration
 
 	// 称する TA の ID。
