@@ -6,7 +6,9 @@ import (
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"github.com/realglobe-Inc/go-lib-rg/rglog"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 )
 
 var exitCode = 0
@@ -56,11 +58,22 @@ func mainCore(param *parameters) error {
 	var priKeyCont driver.KeyValueStore
 	switch param.priKeyContType {
 	case "file":
-		priKeyCont = driver.NewFileKeyValueStore(param.priKeyContPath, func(before string) string {
-			return before + ".key"
-		}, nil, func(data []byte) (interface{}, error) {
-			return util.ParseRsaPrivateKey(string(data))
-		}, param.caExpiDur)
+		priKeyCont = driver.NewFileKeyValueStore(param.priKeyContPath,
+			func(key string) string {
+				return url.QueryEscape(key) + ".key"
+			},
+			func(path string) string {
+				if !strings.HasSuffix(path, ".key") {
+					return ""
+				}
+				key, _ := url.QueryUnescape(path[:len(path)-len(".key")])
+				return key
+			},
+			nil,
+			func(data []byte) (interface{}, error) {
+				return util.ParseRsaPrivateKey(string(data))
+			},
+			param.caExpiDur, param.caExpiDur)
 		log.Info("Use file private key container " + param.priKeyContPath + ".")
 	default:
 		return erro.New("invalid code container type " + param.priKeyContType + ".")
