@@ -46,6 +46,8 @@ type parameters struct {
 	// プロトコル。
 	protType string
 
+	// キャッシュを最新とみなす期間。
+	caStaleDur time.Duration
 	// キャッシュの有効期間。
 	caExpiDur time.Duration
 
@@ -97,7 +99,8 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.IntVar(&param.socPort, "socPort", 16051, "TCP socket port.")
 	flags.StringVar(&param.protType, "protType", "http", "Protocol type.")
 
-	flags.DurationVar(&param.caExpiDur, "caExpiDur", 10*time.Minute, "Cache expiration duration.")
+	flags.DurationVar(&param.caStaleDur, "caStaleDur", 5*time.Minute, "Cache fresh duration.")
+	flags.DurationVar(&param.caExpiDur, "caExpiDur", 30*time.Minute, "Cache expiration duration.")
 
 	flags.StringVar(&param.taId, "taId", "", "Default TA ID.")
 	flags.StringVar(&param.hashName, "hashName", "sha256", "Sign hash type.")

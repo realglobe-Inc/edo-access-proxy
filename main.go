@@ -73,7 +73,7 @@ func mainCore(param *parameters) error {
 			func(data []byte) (interface{}, error) {
 				return util.ParseRsaPrivateKey(string(data))
 			},
-			param.caExpiDur, param.caExpiDur)
+			param.caStaleDur, param.caExpiDur)
 		log.Info("Use file private key container " + param.priKeyContPath + ".")
 	default:
 		return erro.New("invalid code container type " + param.priKeyContType + ".")
