@@ -58,7 +58,7 @@ func mainCore(param *parameters) error {
 	var priKeyCont driver.KeyValueStore
 	switch param.priKeyContType {
 	case "file":
-		priKeyCont = driver.NewFileKeyValueStore(param.priKeyContPath,
+		priKeyCont = driver.NewFileListedKeyValueStore(param.priKeyContPath,
 			func(key string) string {
 				return url.QueryEscape(key) + ".key"
 			},

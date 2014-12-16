@@ -88,7 +88,7 @@ func init() {
 
 func newTestSystem() *system {
 	return &system{
-		priKeyCont: driver.NewMemoryKeyValueStore(0, 0),
+		priKeyCont: driver.NewMemoryListedKeyValueStore(0, 0),
 		taId:       "ta-no-id",
 		hashName:   "sha256",
 		sessCont:   driver.NewMemoryTimeLimitedKeyValueStore(0, 0),
