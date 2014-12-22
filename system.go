@@ -47,13 +47,13 @@ type session struct {
 }
 
 func (sys *system) session(uri, taId string, caStmp *driver.Stamp) (sess *session, newCaStmp *driver.Stamp, err error) {
-	value, newCaStmp, err := sys.sessCont.Get(uri+"<>"+taId, caStmp)
+	val, newCaStmp, err := sys.sessCont.Get(uri+"<>"+taId, caStmp)
 	if err != nil {
 		return nil, nil, erro.Wrap(err)
-	} else if value == nil {
+	} else if val == nil {
 		return nil, newCaStmp, nil
 	}
-	return value.(*session), newCaStmp, nil
+	return val.(*session), newCaStmp, nil
 }
 
 func (sys *system) addSession(sess *session, expiDate time.Time) (newCaStmp *driver.Stamp, err error) {
@@ -65,14 +65,14 @@ func (sys *system) removeSession(sess *session) (err error) {
 }
 
 func (sys *system) privateKey(taId string, caStmp *driver.Stamp) (priKey *rsa.PrivateKey, newCaStmp *driver.Stamp, err error) {
-	value, newCaStmp, err := sys.priKeyCont.Get(taId, caStmp)
+	val, newCaStmp, err := sys.priKeyCont.Get(taId, caStmp)
 	if err != nil {
 		return nil, nil, erro.Wrap(err)
-	} else if value == nil {
+	} else if val == nil {
 		return nil, newCaStmp, nil
 	}
 
-	return value.(*rsa.PrivateKey), newCaStmp, nil
+	return val.(*rsa.PrivateKey), newCaStmp, nil
 }
 
 var noVerifyTr = &http.Transport{
@@ -80,18 +80,18 @@ var noVerifyTr = &http.Transport{
 }
 
 func (sys *system) client(host string) (cli *http.Client, err error) {
-	value, _, err := sys.cliCont.Get(host, nil)
+	val, _, err := sys.cliCont.Get(host, nil)
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
-	if value == nil {
+	if val == nil {
 		if sys.noVerify {
 			cli = &http.Client{Transport: noVerifyTr}
 		} else {
 			cli = &http.Client{}
 		}
 	} else {
-		cli = value.(*http.Client)
+		cli = val.(*http.Client)
 	}
 	// 有効期限の更新。
 	if _, err = sys.cliCont.Put(host, cli, time.Now().Add(sys.cliExpiDur)); err != nil {

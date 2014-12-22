@@ -362,9 +362,9 @@ func parseSession(resp *http.Response) (sess *http.Cookie, sessToken string) {
 // プロキシ先からのレスポンスをリクエスト元へのレスポンスに写す。
 func copyResponse(resp *http.Response, w http.ResponseWriter) error {
 	// ヘッダフィールドのコピー。
-	for key, values := range resp.Header {
-		for _, value := range values {
-			w.Header().Add(key, value)
+	for key, vals := range resp.Header {
+		for _, val := range vals {
+			w.Header().Add(key, val)
 		}
 	}
 
