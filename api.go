@@ -29,7 +29,7 @@ const (
 	headerAuthTaTokenSig = "X-Edo-Auth-Ta-Token-Sign"
 	headerAuthHashFunc   = "X-Edo-Auth-Hash-Function"
 
-	cookieTaSess = "X-Edo-Auth-Ta-Session"
+	cookTaSess = "X-Edo-Auth-Ta-Session"
 )
 
 // Web プロキシ。
@@ -84,7 +84,7 @@ func tryForward(sys *system, w http.ResponseWriter, r *http.Request, body []byte
 	} else if sess != nil {
 		// セッションがある。
 		log.Debug("authenticated session is exist")
-		r.AddCookie(&http.Cookie{Name: cookieTaSess, Value: sess.id})
+		r.AddCookie(&http.Cookie{Name: cookTaSess, Value: sess.id})
 	} else {
 		// セッションが無い。
 		log.Debug("session is not exist")
@@ -157,7 +157,7 @@ func checkAndForward(sys *system, w http.ResponseWriter, r *http.Request, bodyHe
 	} else if sess != nil {
 		// セッションがある。
 		log.Debug("authenticated session is exist")
-		req.AddCookie(&http.Cookie{Name: cookieTaSess, Value: sess.id})
+		req.AddCookie(&http.Cookie{Name: cookTaSess, Value: sess.id})
 	} else {
 		// セッションが無い。
 		log.Debug("session is not exist")
@@ -209,7 +209,7 @@ func checkAndForward(sys *system, w http.ResponseWriter, r *http.Request, bodyHe
 	if sess != nil {
 		// セッションがある。
 		log.Debug("authenticated session is exist")
-		r.AddCookie(&http.Cookie{Name: cookieTaSess, Value: sess.id})
+		r.AddCookie(&http.Cookie{Name: cookTaSess, Value: sess.id})
 	} else {
 		// セッションが無い。
 		log.Debug("session is not exist")
@@ -242,7 +242,7 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, bodyHead 
 
 	sess, sessToken := parseSession(ckResp)
 	if sess == nil {
-		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "no cookie "+cookieTaSess, nil))
+		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "no cookie "+cookTaSess, nil))
 	} else if sessToken == "" {
 		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "no header field "+headerAuthTaToken, nil))
 	}
@@ -279,7 +279,7 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, bodyHead 
 	// 署名できた。
 	log.Debug("signed")
 
-	r.AddCookie(&http.Cookie{Name: cookieTaSess, Value: sess.Value})
+	r.AddCookie(&http.Cookie{Name: cookTaSess, Value: sess.Value})
 	r.Header.Set(headerAuthTaId, taId)
 	r.Header.Set(headerAuthTaTokenSig, tokenSign)
 	r.Header.Set(headerAuthHashFunc, hashName)
@@ -349,9 +349,9 @@ func isDestinationError(err error) bool {
 
 // プロキシ先の認証開始レスポンスから必要情報を抜き出す。
 func parseSession(resp *http.Response) (sess *http.Cookie, sessToken string) {
-	for _, cookie := range resp.Cookies() {
-		if cookie.Name == cookieTaSess {
-			sess = cookie
+	for _, cook := range resp.Cookies() {
+		if cook.Name == cookTaSess {
+			sess = cook
 			break
 		}
 	}

@@ -156,7 +156,7 @@ func TestNormalWithoutCheck(t *testing.T) {
 	token := "token-da-yo"
 	sys.priKeyCont.Put(sys.taId, testPriKey)
 	dest.AddResponse(http.StatusUnauthorized, map[string][]string{
-		"Set-Cookie":      []string{(&http.Cookie{Name: cookieTaSess, Value: sessId, Expires: time.Now().Add(10 * time.Second)}).String()},
+		"Set-Cookie":      []string{(&http.Cookie{Name: cookTaSess, Value: sessId, Expires: time.Now().Add(10 * time.Second)}).String()},
 		headerAuthTaErr:   []string{"start new session"},
 		headerAuthTaToken: []string{token},
 	}, nil)
@@ -179,10 +179,10 @@ func TestNormalWithoutCheck(t *testing.T) {
 	}
 
 	req := <-reqCh
-	if cookie, err := req.Cookie(cookieTaSess); err != nil {
+	if cook, err := req.Cookie(cookTaSess); err != nil {
 		t.Fatal(err)
-	} else if cookie.Value != sessId {
-		t.Error(cookieTaSess + " is " + cookie.Value + " not " + sessId)
+	} else if cook.Value != sessId {
+		t.Error(cookTaSess + " is " + cook.Value + " not " + sessId)
 	}
 	if req.Header.Get(headerAuthTaId) != sys.taId {
 		t.Error(headerTaId + " is " + req.Header.Get(headerTaId) + " not " + sys.taId)
@@ -227,10 +227,10 @@ func TestNormalWithoutCheck(t *testing.T) {
 	}
 
 	req = <-reqCh
-	if cookie, err := req.Cookie(cookieTaSess); err != nil {
+	if cook, err := req.Cookie(cookTaSess); err != nil {
 		t.Fatal(err)
-	} else if cookie.Value != sessId {
-		t.Error(cookieTaSess + " is " + cookie.Value + " not " + sessId)
+	} else if cook.Value != sessId {
+		t.Error(cookTaSess + " is " + cook.Value + " not " + sessId)
 	}
 }
 
@@ -295,7 +295,7 @@ func TestNormalWithCheck(t *testing.T) {
 	token := "token-da-yo"
 	sys.priKeyCont.Put(sys.taId, testPriKey)
 	dest.AddResponse(http.StatusUnauthorized, map[string][]string{
-		"Set-Cookie":      []string{(&http.Cookie{Name: cookieTaSess, Value: sessId, Expires: time.Now().Add(10 * time.Second)}).String()},
+		"Set-Cookie":      []string{(&http.Cookie{Name: cookTaSess, Value: sessId, Expires: time.Now().Add(10 * time.Second)}).String()},
 		headerAuthTaErr:   []string{"start new session"},
 		headerAuthTaToken: []string{token},
 	}, nil)
@@ -318,10 +318,10 @@ func TestNormalWithCheck(t *testing.T) {
 	}
 
 	req := <-reqCh
-	if cookie, err := req.Cookie(cookieTaSess); err != nil {
+	if cook, err := req.Cookie(cookTaSess); err != nil {
 		t.Fatal(err)
-	} else if cookie.Value != sessId {
-		t.Error(cookieTaSess + " is " + cookie.Value + " not " + sessId)
+	} else if cook.Value != sessId {
+		t.Error(cookTaSess + " is " + cook.Value + " not " + sessId)
 	}
 	if req.Header.Get(headerAuthTaId) != sys.taId {
 		t.Error(headerTaId + " is " + req.Header.Get(headerTaId) + " not " + sys.taId)
@@ -367,10 +367,10 @@ func TestNormalWithCheck(t *testing.T) {
 	}
 
 	req = <-reqCh
-	if cookie, err := req.Cookie(cookieTaSess); err != nil {
+	if cook, err := req.Cookie(cookTaSess); err != nil {
 		t.Fatal(err)
-	} else if cookie.Value != sessId {
-		t.Error(cookieTaSess + " is " + cookie.Value + " not " + sessId)
+	} else if cook.Value != sessId {
+		t.Error(cookTaSess + " is " + cook.Value + " not " + sessId)
 	}
 }
 
@@ -414,7 +414,7 @@ func TestNormalMaxAge(t *testing.T) {
 	token := "token-da-yo"
 	sys.priKeyCont.Put(sys.taId, testPriKey)
 	dest.AddResponse(http.StatusUnauthorized, map[string][]string{
-		"Set-Cookie":      []string{(&http.Cookie{Name: cookieTaSess, Value: sessId, MaxAge: 10}).String()},
+		"Set-Cookie":      []string{(&http.Cookie{Name: cookTaSess, Value: sessId, MaxAge: 10}).String()},
 		headerAuthTaErr:   []string{"start new session"},
 		headerAuthTaToken: []string{token},
 	}, nil)
@@ -442,10 +442,10 @@ func TestNormalMaxAge(t *testing.T) {
 	defer resp.Body.Close()
 
 	req := <-reqCh
-	if cookie, err := req.Cookie(cookieTaSess); err != nil {
+	if cook, err := req.Cookie(cookTaSess); err != nil {
 		t.Fatal(err)
-	} else if cookie.Value != sessId {
-		t.Error(cookieTaSess + " is " + cookie.Value + " not " + sessId)
+	} else if cook.Value != sessId {
+		t.Error(cookTaSess + " is " + cook.Value + " not " + sessId)
 	}
 }
 
@@ -488,7 +488,7 @@ func TestEdoAccessProxyBody(t *testing.T) {
 	token := "token-da-yo"
 	sys.priKeyCont.Put(sys.taId, testPriKey)
 	dest.AddResponse(http.StatusUnauthorized, map[string][]string{
-		"Set-Cookie":      []string{(&http.Cookie{Name: cookieTaSess, Value: sessId}).String()},
+		"Set-Cookie":      []string{(&http.Cookie{Name: cookTaSess, Value: sessId}).String()},
 		headerAuthTaErr:   []string{"start new session"},
 		headerAuthTaToken: []string{token},
 	}, nil)
@@ -584,7 +584,7 @@ func TestSpecifyTa(t *testing.T) {
 	taId := "chigau-ta-no-id"
 	sys.priKeyCont.Put(taId, testPriKey)
 	dest.AddResponse(http.StatusUnauthorized, map[string][]string{
-		"Set-Cookie":      []string{(&http.Cookie{Name: cookieTaSess, Value: sessId, Expires: time.Now().Add(10 * time.Second)}).String()},
+		"Set-Cookie":      []string{(&http.Cookie{Name: cookTaSess, Value: sessId, Expires: time.Now().Add(10 * time.Second)}).String()},
 		headerAuthTaErr:   []string{"start new session"},
 		headerAuthTaToken: []string{token},
 	}, nil)
@@ -665,7 +665,7 @@ func TestSpecifyDestination(t *testing.T) {
 	taId := "chigau-ta-no-id"
 	sys.priKeyCont.Put(taId, testPriKey)
 	dest.AddResponse(http.StatusUnauthorized, map[string][]string{
-		"Set-Cookie":      []string{(&http.Cookie{Name: cookieTaSess, Value: sessId, Expires: time.Now().Add(10 * time.Second)}).String()},
+		"Set-Cookie":      []string{(&http.Cookie{Name: cookTaSess, Value: sessId, Expires: time.Now().Add(10 * time.Second)}).String()},
 		headerAuthTaErr:   []string{"start new session"},
 		headerAuthTaToken: []string{token},
 	}, nil)
@@ -846,7 +846,7 @@ func TestLackOfAuthenticationInformation(t *testing.T) {
 
 	// X-Edo-Auth-Ta-Token が無い。
 	dest.AddResponse(http.StatusUnauthorized, map[string][]string{
-		"Set-Cookie":    []string{(&http.Cookie{Name: cookieTaSess, Value: "session-da-yo", Expires: time.Now().Add(10 * time.Second)}).String()},
+		"Set-Cookie":    []string{(&http.Cookie{Name: cookTaSess, Value: "session-da-yo", Expires: time.Now().Add(10 * time.Second)}).String()},
 		headerAuthTaErr: []string{"start new session"},
 	}, nil)
 
@@ -920,7 +920,7 @@ func TestNoSignKey(t *testing.T) {
 	sessId := "session-da-yo"
 	token := "token-da-yo"
 	dest.AddResponse(http.StatusUnauthorized, map[string][]string{
-		"Set-Cookie":      []string{(&http.Cookie{Name: cookieTaSess, Value: sessId, Expires: time.Now().Add(10 * time.Second)}).String()},
+		"Set-Cookie":      []string{(&http.Cookie{Name: cookTaSess, Value: sessId, Expires: time.Now().Add(10 * time.Second)}).String()},
 		headerAuthTaErr:   []string{"start new session"},
 		headerAuthTaToken: []string{token},
 	}, nil)
