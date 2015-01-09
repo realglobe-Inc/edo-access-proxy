@@ -93,7 +93,7 @@ func parseParameters(args ...string) (param *parameters, err error) {
 
 	flags.StringVar(&param.socType, "socType", "tcp", "Socket type.")
 	flags.StringVar(&param.socPath, "socPath", filepath.Join(filepath.Dir(os.Args[0]), "run", label+".soc"), "UNIX socket path.")
-	flags.IntVar(&param.socPort, "socPort", 16051, "TCP socket port.")
+	flags.IntVar(&param.socPort, "socPort", 16050, "TCP socket port.")
 	flags.StringVar(&param.protType, "protType", "http", "Protocol type.")
 
 	flags.DurationVar(&param.caStaleDur, "caStaleDur", 5*time.Minute, "Cache fresh duration.")
