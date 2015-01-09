@@ -603,8 +603,8 @@ func TestSpecifyTa(t *testing.T) {
 	defer resp.Body.Close()
 
 	req = <-reqCh
-	if req.Header.Get(headerTaId) != taId {
-		t.Error(headerTaId + " is " + req.Header.Get(headerTaId) + " not " + taId)
+	if req.Header.Get(headerAuthTaId) != taId {
+		t.Error(headerAuthTaId + " is " + req.Header.Get(headerAuthTaId) + " not " + taId)
 	}
 
 	// 認証済み。
@@ -623,8 +623,8 @@ func TestSpecifyTa(t *testing.T) {
 	defer resp.Body.Close()
 
 	req = <-reqCh
-	if req.Header.Get(headerTaId) != taId {
-		t.Error(headerTaId + " is " + req.Header.Get(headerTaId) + " not " + taId)
+	if req.Header.Get(headerAuthTaId) != "" {
+		t.Error(headerAuthTaId + " is " + req.Header.Get(headerAuthTaId) + " not empty")
 	}
 }
 

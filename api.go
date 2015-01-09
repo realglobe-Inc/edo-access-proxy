@@ -76,6 +76,8 @@ func tryForward(sys *system, w http.ResponseWriter, r *http.Request, body []byte
 	taId := r.Header.Get(headerTaId)
 	if taId == "" {
 		taId = sys.taId
+	} else {
+		defer r.Header.Del(headerTaId)
 	}
 
 	sess, _, err := sys.session(r.Host, taId, nil)
@@ -144,6 +146,8 @@ func checkAndForward(sys *system, w http.ResponseWriter, r *http.Request, bodyHe
 	taId := r.Header.Get(headerTaId)
 	if taId == "" {
 		taId = sys.taId
+	} else {
+		defer r.Header.Del(headerTaId)
 	}
 
 	req, err := http.NewRequest("HEAD", r.URL.String(), nil)
@@ -238,6 +242,8 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, bodyHead 
 	taId := r.Header.Get(headerTaId)
 	if taId == "" {
 		taId = sys.taId
+	} else {
+		defer r.Header.Del(headerTaId)
 	}
 
 	sess, sessToken := parseSession(ckResp)
