@@ -113,7 +113,8 @@ func tryForward(sys *system, w http.ResponseWriter, r *http.Request, body []byte
 	util.LogResponse(level.DEBUG, resp, true)
 
 	if resp.Header.Get(headerAuthTaErr) != "" {
-		if resp.StatusCode == http.StatusUnauthorized {
+		switch resp.StatusCode {
+		case http.StatusUnauthorized:
 			// セッションが必要なのに確立できていなかった。
 			log.Debug("first forwarding failed because of no valid session")
 
@@ -127,7 +128,7 @@ func tryForward(sys *system, w http.ResponseWriter, r *http.Request, body []byte
 			}
 
 			return startSession(sys, w, r, body, resp)
-		} else {
+		default:
 			// セッション云々以前のエラー。
 			log.Debug("first forwarding failed")
 
@@ -185,7 +186,8 @@ func checkAndForward(sys *system, w http.ResponseWriter, r *http.Request, bodyHe
 	util.LogResponse(level.DEBUG, ckResp, true)
 
 	if ckResp.Header.Get(headerAuthTaErr) != "" {
-		if ckResp.StatusCode == http.StatusUnauthorized {
+		switch ckResp.StatusCode {
+		case http.StatusUnauthorized:
 			// セッションが必要なのに確立できていなかった。
 			log.Debug("first forwarding failed because of no valid session")
 
@@ -199,7 +201,7 @@ func checkAndForward(sys *system, w http.ResponseWriter, r *http.Request, bodyHe
 			}
 
 			return startSession(sys, w, r, bodyHead, ckResp)
-		} else {
+		default:
 			// セッション云々以前のエラー。
 			log.Debug("check failed")
 
