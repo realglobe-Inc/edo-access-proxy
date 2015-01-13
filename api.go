@@ -112,7 +112,7 @@ func tryForward(sys *system, w http.ResponseWriter, r *http.Request, body []byte
 	defer resp.Body.Close()
 	util.LogResponse(level.DEBUG, resp, true)
 
-	if taAuthErr := (resp.Header.Get(headerAuthTaErr) != ""); taAuthErr {
+	if resp.Header.Get(headerAuthTaErr) != "" {
 		if resp.StatusCode == http.StatusUnauthorized {
 			// セッションが必要なのに確立できていなかった。
 			log.Debug("first forwarding failed because of no valid session")
@@ -184,7 +184,7 @@ func checkAndForward(sys *system, w http.ResponseWriter, r *http.Request, bodyHe
 	defer ckResp.Body.Close()
 	util.LogResponse(level.DEBUG, ckResp, true)
 
-	if taAuthErr := (ckResp.Header.Get(headerAuthTaErr) != ""); taAuthErr {
+	if ckResp.Header.Get(headerAuthTaErr) != "" {
 		if ckResp.StatusCode == http.StatusUnauthorized {
 			// セッションが必要なのに確立できていなかった。
 			log.Debug("first forwarding failed because of no valid session")
