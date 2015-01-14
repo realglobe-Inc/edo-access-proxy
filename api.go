@@ -128,6 +128,18 @@ func tryForward(sys *system, w http.ResponseWriter, r *http.Request, body []byte
 			}
 
 			return startSession(sys, w, r, body, resp)
+		case http.StatusForbidden:
+			// 許可されなかった。
+			if sess != nil {
+				log.Debug("remove old invalid session")
+
+				// 古いセッションを削除。
+				if err := sys.removeSession(sess); err != nil {
+					return erro.Wrap(err)
+				}
+			}
+
+			return copyResponse(resp, w)
 		default:
 			// セッション云々以前のエラー。
 			log.Debug("first forwarding failed")
@@ -201,6 +213,18 @@ func checkAndForward(sys *system, w http.ResponseWriter, r *http.Request, bodyHe
 			}
 
 			return startSession(sys, w, r, bodyHead, ckResp)
+		case http.StatusForbidden:
+			// 許可されなかった。
+			if sess != nil {
+				log.Debug("remove old invalid session")
+
+				// 古いセッションを削除。
+				if err := sys.removeSession(sess); err != nil {
+					return erro.Wrap(err)
+				}
+			}
+
+			return copyResponse(ckResp, w)
 		default:
 			// セッション云々以前のエラー。
 			log.Debug("check failed")
