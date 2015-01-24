@@ -990,7 +990,7 @@ func TestBigRequest(t *testing.T) {
 	go func() {
 		defer wPipe.Close()
 		buff := make([]byte, (1 << 21) /* 2 MB */)
-		for n := 0; n < (1 << 35); /* 32 GB */ {
+		for n := 0; n < (1 << 32); /* 4 GB */ {
 			l, err := wPipe.Write(buff)
 			if err != nil {
 				errCh <- err
@@ -1032,7 +1032,7 @@ func TestBigResponse(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		buff := make([]byte, (1 << 21) /* 2 MB */)
-		for n := 0; n < (1 << 35); {
+		for n := 0; n < (1 << 32); { /* 4 GB */
 			l, err := w.Write(buff)
 			if err != nil {
 				errCh <- err
