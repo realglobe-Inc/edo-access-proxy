@@ -91,8 +91,8 @@ func newTestSystem() *system {
 		priKeyCont: driver.NewMemoryListedKeyValueStore(0, 0),
 		taId:       "ta-no-id",
 		hashName:   "sha256",
-		sessCont:   driver.NewMemoryTimeLimitedKeyValueStore(0, 0),
-		cliCont:    driver.NewMemoryTimeLimitedKeyValueStore(0, 0),
+		sessCont:   driver.NewMemoryVolatileKeyValueStore(0, 0),
+		cliCont:    driver.NewMemoryVolatileKeyValueStore(0, 0),
 		threSize:   8192,
 	}
 }

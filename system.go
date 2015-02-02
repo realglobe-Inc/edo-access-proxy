@@ -15,10 +15,10 @@ type system struct {
 	taId     string
 	hashName string // 署名に使うハッシュ関数。
 
-	sessCont   driver.TimeLimitedKeyValueStore
+	sessCont   driver.VolatileKeyValueStore
 	sessMargin time.Duration // 有効期限ギリギリのセッションを避けるための遊び。
 
-	cliCont    driver.TimeLimitedKeyValueStore
+	cliCont    driver.VolatileKeyValueStore
 	cliExpiDur time.Duration
 
 	threSize int // セッションを事前に検査するボディサイズの下限。
@@ -31,9 +31,9 @@ func newSystem(priKeyCont driver.KeyValueStore, taId string, hashName string, se
 		priKeyCont: priKeyCont,
 		taId:       taId,
 		hashName:   hashName,
-		sessCont:   driver.NewMemoryTimeLimitedKeyValueStore(0, 0),
+		sessCont:   driver.NewMemoryVolatileKeyValueStore(0, 0),
 		sessMargin: sessMargin,
-		cliCont:    driver.NewMemoryTimeLimitedKeyValueStore(0, 0),
+		cliCont:    driver.NewMemoryVolatileKeyValueStore(0, 0),
 		cliExpiDur: cliExpiDur,
 		threSize:   threSize,
 		noVerify:   noVerify,
