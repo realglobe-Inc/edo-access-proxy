@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"github.com/realglobe-Inc/edo/util"
+	"github.com/realglobe-Inc/edo/util/crypto"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"io"
@@ -413,7 +414,7 @@ func copyResponse(resp *http.Response, w http.ResponseWriter) error {
 
 // プロキシ先からのお題に署名する。
 func sign(priKey *rsa.PrivateKey, hashName, token string) (string, error) {
-	hash, err := util.ParseHashFunction(hashName)
+	hash, err := crypto.ParseHashFunction(hashName)
 	if err != nil {
 		return "", erro.Wrap(err)
 	}

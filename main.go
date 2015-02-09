@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/edo/util"
+	"github.com/realglobe-Inc/edo/util/crypto"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"github.com/realglobe-Inc/go-lib-rg/rglog"
 	"net/http"
@@ -71,7 +72,7 @@ func mainCore(param *parameters) error {
 			},
 			nil,
 			func(data []byte) (interface{}, error) {
-				return util.ParseRsaPrivateKey(string(data))
+				return crypto.ParsePrivateKey(data)
 			},
 			param.caStaleDur, param.caExpiDur)
 		log.Info("Use file private key container " + param.priKeyContPath + ".")
