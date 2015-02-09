@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"io/ioutil"
@@ -71,7 +70,7 @@ func parseParameters(args ...string) (param *parameters, err error) {
 
 	const label = "edo-access-proxy"
 
-	flags := util.NewFlagSet(label+" parameters", flag.ExitOnError)
+	flags := flag.NewFlagSet(label+" parameters", flag.ExitOnError)
 	flags.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Usage:")
 		fmt.Fprintln(os.Stderr, "  "+args[0]+" [{FLAG}...]")
@@ -120,7 +119,7 @@ func parseParameters(args ...string) (param *parameters, err error) {
 			}
 			log.Warn("Config file " + config + " is not exist.")
 		} else {
-			flags.CompleteParse(strings.Fields(string(buff)))
+			flags.Parse(strings.Fields(string(buff)))
 		}
 	}
 	flags.Parse(args[1:])
