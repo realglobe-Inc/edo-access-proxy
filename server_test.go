@@ -97,7 +97,9 @@ func TestNormalWithoutCheck(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
-	go serve(sys, "tcp", "", port, "http")
+	shutCh := make(chan struct{}, 10)
+	defer func() { shutCh <- struct{}{} }()
+	go serve(sys, "tcp", "", port, "http", shutCh)
 
 	// サーバ起動待ち。
 	time.Sleep(10 * time.Millisecond)
@@ -235,7 +237,9 @@ func TestNormalWithCheck(t *testing.T) {
 	}
 	sys := newTestSystem()
 	sys.threSize = 1
-	go serve(sys, "tcp", "", port, "http")
+	shutCh := make(chan struct{}, 10)
+	defer func() { shutCh <- struct{}{} }()
+	go serve(sys, "tcp", "", port, "http", shutCh)
 
 	// サーバ起動待ち。
 	time.Sleep(10 * time.Millisecond)
@@ -374,7 +378,9 @@ func TestNormalMaxAge(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
-	go serve(sys, "tcp", "", port, "http")
+	shutCh := make(chan struct{}, 10)
+	defer func() { shutCh <- struct{}{} }()
+	go serve(sys, "tcp", "", port, "http", shutCh)
 
 	// サーバ起動待ち。
 	time.Sleep(10 * time.Millisecond)
@@ -449,7 +455,9 @@ func TestEdoAccessProxyBody(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
-	go serve(sys, "tcp", "", port, "http")
+	shutCh := make(chan struct{}, 10)
+	defer func() { shutCh <- struct{}{} }()
+	go serve(sys, "tcp", "", port, "http", shutCh)
 
 	// サーバ起動待ち。
 	time.Sleep(10 * time.Millisecond)
@@ -501,7 +509,9 @@ func TestNotProxyUrl(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
-	go serve(sys, "tcp", "", port, "http")
+	shutCh := make(chan struct{}, 10)
+	defer func() { shutCh <- struct{}{} }()
+	go serve(sys, "tcp", "", port, "http", shutCh)
 
 	// サーバ起動待ち。
 	time.Sleep(10 * time.Millisecond)
@@ -543,7 +553,9 @@ func TestSpecifyTa(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
-	go serve(sys, "tcp", "", port, "http")
+	shutCh := make(chan struct{}, 10)
+	defer func() { shutCh <- struct{}{} }()
+	go serve(sys, "tcp", "", port, "http", shutCh)
 
 	// サーバ起動待ち。
 	time.Sleep(10 * time.Millisecond)
@@ -628,7 +640,9 @@ func TestSpecifyDestination(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
-	go serve(sys, "tcp", "", port, "http")
+	shutCh := make(chan struct{}, 10)
+	defer func() { shutCh <- struct{}{} }()
+	go serve(sys, "tcp", "", port, "http", shutCh)
 
 	// サーバ起動待ち。
 	time.Sleep(10 * time.Millisecond)
@@ -700,7 +714,9 @@ func TestNoDestination(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
-	go serve(sys, "tcp", "", port, "http")
+	shutCh := make(chan struct{}, 10)
+	defer func() { shutCh <- struct{}{} }()
+	go serve(sys, "tcp", "", port, "http", shutCh)
 
 	// サーバ起動待ち。
 	time.Sleep(10 * time.Millisecond)
@@ -753,7 +769,9 @@ func TestErrorCancel(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
-	go serve(sys, "tcp", "", port, "http")
+	shutCh := make(chan struct{}, 10)
+	defer func() { shutCh <- struct{}{} }()
+	go serve(sys, "tcp", "", port, "http", shutCh)
 
 	// サーバ起動待ち。
 	time.Sleep(10 * time.Millisecond)
@@ -809,7 +827,9 @@ func TestLackOfAuthenticationInformation(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
-	go serve(sys, "tcp", "", port, "http")
+	shutCh := make(chan struct{}, 10)
+	defer func() { shutCh <- struct{}{} }()
+	go serve(sys, "tcp", "", port, "http", shutCh)
 
 	// サーバ起動待ち。
 	time.Sleep(10 * time.Millisecond)
@@ -881,7 +901,9 @@ func TestNoSignKey(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
-	go serve(sys, "tcp", "", port, "http")
+	shutCh := make(chan struct{}, 10)
+	defer func() { shutCh <- struct{}{} }()
+	go serve(sys, "tcp", "", port, "http", shutCh)
 
 	// サーバ起動待ち。
 	time.Sleep(10 * time.Millisecond)
@@ -950,7 +972,9 @@ func TestBigRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
-	go serve(sys, "tcp", "", port, "http")
+	shutCh := make(chan struct{}, 10)
+	defer func() { shutCh <- struct{}{} }()
+	go serve(sys, "tcp", "", port, "http", shutCh)
 
 	// サーバ起動待ち。
 	time.Sleep(10 * time.Millisecond)
@@ -1027,7 +1051,9 @@ func TestBigResponse(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
-	go serve(sys, "tcp", "", port, "http")
+	shutCh := make(chan struct{}, 10)
+	defer func() { shutCh <- struct{}{} }()
+	go serve(sys, "tcp", "", port, "http", shutCh)
 
 	// サーバ起動待ち。
 	time.Sleep(10 * time.Millisecond)

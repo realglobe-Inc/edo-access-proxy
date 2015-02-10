@@ -1,14 +1,19 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/edo/util/crypto"
+	jsonutil "github.com/realglobe-Inc/edo/util/json"
+	"github.com/realglobe-Inc/edo/util/server"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"github.com/realglobe-Inc/go-lib-rg/rglog"
+	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -89,7 +94,7 @@ func mainCore(param *parameters) error {
 		param.threSize,
 		param.noVerify,
 	)
-	return serve(sys, param.socType, param.socPath, param.socPort, param.protType)
+	return serve(sys, param.socType, param.socPath, param.socPort, param.protType, nil)
 }
 
 // 振り分ける。
@@ -97,37 +102,74 @@ const (
 	proxyApiPath = "/"
 )
 
-func serve(sys *system, socType, socPath string, socPort int, protType string) error {
-	routes := map[string]util.HandlerFunc{
-		proxyApiPath: wrapper(func(w http.ResponseWriter, r *http.Request) error {
+func serve(sys *system, socType, socPath string, socPort int, protType string, shutCh chan struct{}) error {
+	routes := map[string]server.HandlerFunc{
+		proxyApiPath: func(w http.ResponseWriter, r *http.Request) error {
 			return proxyApi(sys, w, r)
-		}),
+		},
 	}
-	return util.Serve(socType, socPath, socPort, protType, routes)
+	return server.TerminableServe(socType, socPath, socPort, protType, routes, shutCh, wrapper)
 }
 
-func wrapper(f func(http.ResponseWriter, *http.Request) error) func(http.ResponseWriter, *http.Request) error {
-	return func(w http.ResponseWriter, r *http.Request) error {
-		if err := f(w, r); err != nil {
-			err = erro.Wrap(err)
-			var msg string
-			for baseErr := err; msg == ""; {
-				switch e := erro.Unwrap(baseErr).(type) {
-				case *util.HttpStatusError:
-					if e.Cause() == nil {
-						msg = e.Message()
-					} else {
-						baseErr = e.Cause()
-					}
-				case *erro.Tracer:
-					baseErr = e.Cause()
-				default:
-					msg = e.Error()
-				}
+func wrapper(hndl server.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// panic時にプロセス終了しないようにrecoverする
+		defer func() {
+			if rcv := recover(); rcv != nil {
+				responseError(w, erro.New(rcv))
+				return
 			}
-			w.Header().Set(headerAccProxErr, msg)
-			return err
+		}()
+
+		//////////////////////////////
+		server.LogRequest(level.DEBUG, r, true)
+		//////////////////////////////
+
+		if err := hndl(w, r); err != nil {
+			responseError(w, erro.Wrap(err))
+			return
 		}
-		return nil
 	}
+}
+
+func responseError(w http.ResponseWriter, err error) {
+	var v struct {
+		Stat int    `json:"status"`
+		Msg  string `json:"message"`
+	}
+	switch e := erro.Unwrap(err).(type) {
+	case *server.StatusError:
+		log.Err(e.Message())
+		log.Debug(e)
+		v.Stat = e.Status()
+		v.Msg = e.Message()
+	default:
+		log.Err(e)
+		log.Debug(err)
+		v.Stat = http.StatusInternalServerError
+		v.Msg = e.Error()
+	}
+
+	buff, err := json.Marshal(&v)
+	if err != nil {
+		err = erro.Wrap(err)
+		log.Err(erro.Unwrap(err))
+		log.Debug(err)
+		// 最後の手段。たぶん正しい変換。
+		buff = []byte(`{status="` + jsonutil.StringEscape(strconv.Itoa(v.Stat)) +
+			`",message="` + jsonutil.StringEscape(v.Msg) + `"}`)
+	}
+
+	// エラー起源を追加。
+	w.Header().Set(headerAccProxErr, v.Msg)
+
+	w.Header().Set("Content-Type", server.ContentTypeJson)
+	w.Header().Set("Content-Length", strconv.Itoa(len(buff)))
+	w.WriteHeader(v.Stat)
+	if _, err := w.Write(buff); err != nil {
+		err = erro.Wrap(err)
+		log.Err(erro.Unwrap(err))
+		log.Debug(err)
+	}
+	return
 }

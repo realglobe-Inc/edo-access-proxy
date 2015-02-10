@@ -5,8 +5,8 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/base64"
-	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/edo/util/crypto"
+	"github.com/realglobe-Inc/edo/util/server"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"io"
@@ -40,7 +40,7 @@ func proxyApi(sys *system, w http.ResponseWriter, r *http.Request) error {
 		// ヘッダによる指定。
 		if u, err := url.Parse(rawUri); err != nil {
 			// URL 指定がおかしい。
-			return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "invalid uri "+rawUri, erro.Wrap(err)))
+			return erro.Wrap(server.NewStatusError(http.StatusBadRequest, "invalid uri "+rawUri, erro.Wrap(err)))
 		} else {
 			r.Header.Del(headerAccProxUri)
 			r.URL = u
@@ -48,7 +48,7 @@ func proxyApi(sys *system, w http.ResponseWriter, r *http.Request) error {
 		}
 	} else if !strings.HasPrefix(r.RequestURI, "http://") && !strings.HasPrefix(r.RequestURI, "https://") {
 		// URL 指定がプロキシ形式になってない。
-		return erro.Wrap(util.NewHttpStatusError(http.StatusBadRequest, "no scheme in request uri", nil))
+		return erro.Wrap(server.NewStatusError(http.StatusBadRequest, "no scheme in request uri", nil))
 	}
 
 	buff, err := readHead(r.Body, sys.threSize)
@@ -100,18 +100,18 @@ func tryForward(sys *system, w http.ResponseWriter, r *http.Request, body []byte
 	r.RequestURI = ""
 	r.Body = ioutil.NopCloser(bytes.NewReader(body))
 
-	util.LogRequest(level.DEBUG, r, true)
+	server.LogRequest(level.DEBUG, r, true)
 	resp, err := cli.Do(r)
 	if err != nil {
 		err = erro.Wrap(err)
 		if isDestinationError(err) {
-			return erro.Wrap(util.NewHttpStatusError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
+			return erro.Wrap(server.NewStatusError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
 		} else {
 			return err
 		}
 	}
 	defer resp.Body.Close()
-	util.LogResponse(level.DEBUG, resp, true)
+	server.LogResponse(level.DEBUG, resp, true)
 
 	if resp.Header.Get(headerAuthTaErr) != "" {
 		switch resp.StatusCode {
@@ -185,18 +185,18 @@ func checkAndForward(sys *system, w http.ResponseWriter, r *http.Request, bodyHe
 		return erro.Wrap(err)
 	}
 
-	util.LogRequest(level.DEBUG, req, true)
+	server.LogRequest(level.DEBUG, req, true)
 	ckResp, err := cli.Do(req)
 	if err != nil {
 		err = erro.Wrap(err)
 		if isDestinationError(err) {
-			return erro.Wrap(util.NewHttpStatusError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
+			return erro.Wrap(server.NewStatusError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
 		} else {
 			return err
 		}
 	}
 	defer ckResp.Body.Close()
-	util.LogResponse(level.DEBUG, ckResp, true)
+	server.LogResponse(level.DEBUG, ckResp, true)
 
 	if ckResp.Header.Get(headerAuthTaErr) != "" {
 		switch ckResp.StatusCode {
@@ -248,18 +248,18 @@ func checkAndForward(sys *system, w http.ResponseWriter, r *http.Request, bodyHe
 	r.RequestURI = ""
 	r.Body = ioutil.NopCloser(io.MultiReader(bytes.NewReader(bodyHead), r.Body))
 
-	util.LogRequest(level.DEBUG, r, true)
+	server.LogRequest(level.DEBUG, r, true)
 	resp, err := cli.Do(r)
 	if err != nil {
 		err = erro.Wrap(err)
 		if isDestinationError(err) {
-			return erro.Wrap(util.NewHttpStatusError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
+			return erro.Wrap(server.NewStatusError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
 		} else {
 			return err
 		}
 	}
 	defer resp.Body.Close()
-	util.LogResponse(level.DEBUG, resp, true)
+	server.LogResponse(level.DEBUG, resp, true)
 
 	return copyResponse(resp, w)
 }
@@ -275,9 +275,9 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, bodyHead 
 
 	sess, sessToken := parseSession(ckResp)
 	if sess == nil {
-		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "no cookie "+cookTaSess, nil))
+		return erro.Wrap(server.NewStatusError(http.StatusForbidden, "no cookie "+cookTaSess, nil))
 	} else if sessToken == "" {
-		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "no header field "+headerAuthTaToken, nil))
+		return erro.Wrap(server.NewStatusError(http.StatusForbidden, "no header field "+headerAuthTaToken, nil))
 	}
 	cli, err := sys.client(r.Host)
 	if err != nil {
@@ -293,7 +293,7 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, bodyHead 
 	if err != nil {
 		return erro.Wrap(err)
 	} else if priKey == nil {
-		return erro.Wrap(util.NewHttpStatusError(http.StatusForbidden, "no private key of "+taId, nil))
+		return erro.Wrap(server.NewStatusError(http.StatusForbidden, "no private key of "+taId, nil))
 	}
 
 	// 秘密鍵を用意できた。
@@ -319,18 +319,18 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, bodyHead 
 	r.RequestURI = ""
 	r.Body = ioutil.NopCloser(io.MultiReader(bytes.NewReader(bodyHead), r.Body))
 
-	util.LogRequest(level.DEBUG, r, true)
+	server.LogRequest(level.DEBUG, r, true)
 	resp, err := cli.Do(r)
 	if err != nil {
 		err = erro.Wrap(err)
 		if isDestinationError(err) {
-			return erro.Wrap(util.NewHttpStatusError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
+			return erro.Wrap(server.NewStatusError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
 		} else {
 			return err
 		}
 	}
 	defer resp.Body.Close()
-	util.LogResponse(level.DEBUG, resp, true)
+	server.LogResponse(level.DEBUG, resp, true)
 
 	// 認証された。
 	log.Debug("authentication finished")
@@ -368,7 +368,7 @@ func isDestinationError(err error) bool {
 			}
 		case *erro.Tracer:
 			err = e.Cause()
-		case *util.HttpStatusError:
+		case *server.StatusError:
 			if e.Cause() != nil {
 				err = e.Cause()
 			} else {
