@@ -17,16 +17,13 @@ import (
 	"strings"
 )
 
-var exitCode = 0
-
-func exit() {
-	if exitCode != 0 {
-		os.Exit(exitCode)
-	}
-}
-
 func main() {
-	defer exit()
+	var exitCode = 0
+	defer func() {
+		if exitCode != 0 {
+			os.Exit(exitCode)
+		}
+	}()
 	defer rglog.Flush()
 
 	logutil.InitConsole("github.com/realglobe-Inc")
