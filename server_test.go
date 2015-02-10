@@ -5,9 +5,9 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"github.com/realglobe-Inc/edo/driver"
-	"github.com/realglobe-Inc/edo/util"
 	cryptoutil "github.com/realglobe-Inc/edo/util/crypto"
 	logutil "github.com/realglobe-Inc/edo/util/log"
+	"github.com/realglobe-Inc/edo/util/test"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"io"
 	"io/ioutil"
@@ -82,18 +82,14 @@ func TestNormalWithoutCheck(t *testing.T) {
 	// ////////////////////////////////
 
 	// プロキシ先を用意。
-	destPort, err := util.FreePort()
-	if err != nil {
-		t.Fatal(err)
-	}
-	dest, err := util.NewTestHttpServer(destPort)
+	dest, err := test.NewHttpServer(0)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer dest.Close()
 
 	// テストするプロキシサーバーを用意。
-	port, err := util.FreePort()
+	port, err := test.FreePort()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +110,7 @@ func TestNormalWithoutCheck(t *testing.T) {
 	// 素通りする。
 	dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	resp, err := cli.Get("http://localhost:" + strconv.Itoa(destPort) + "/")
+	resp, err := cli.Get("http://" + dest.Address() + "/")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +137,7 @@ func TestNormalWithoutCheck(t *testing.T) {
 	}, nil)
 	reqCh := dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	resp, err = cli.Get("http://localhost:" + strconv.Itoa(destPort) + "/")
+	resp, err = cli.Get("http://" + dest.Address() + "/")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,7 +185,7 @@ func TestNormalWithoutCheck(t *testing.T) {
 	// 認証済み。
 	reqCh = dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	resp, err = cli.Get("http://localhost:" + strconv.Itoa(destPort) + "/")
+	resp, err = cli.Get("http://" + dest.Address() + "/")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,18 +217,14 @@ func TestNormalWithCheck(t *testing.T) {
 	// ////////////////////////////////
 
 	// プロキシ先を用意。
-	destPort, err := util.FreePort()
-	if err != nil {
-		t.Fatal(err)
-	}
-	dest, err := util.NewTestHttpServer(destPort)
+	dest, err := test.NewHttpServer(0)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer dest.Close()
 
 	// テストするプロキシサーバーを用意。
-	port, err := util.FreePort()
+	port, err := test.FreePort()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -255,7 +247,7 @@ func TestNormalWithCheck(t *testing.T) {
 	dest.AddResponse(http.StatusOK, nil, nil)
 	dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	resp, err := cli.Post("http://localhost:"+strconv.Itoa(destPort)+"/", "text/plain", strings.NewReader("oi"))
+	resp, err := cli.Post("http://"+dest.Address()+"/", "text/plain", strings.NewReader("oi"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -282,7 +274,7 @@ func TestNormalWithCheck(t *testing.T) {
 	}, nil)
 	reqCh := dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	resp, err = cli.Post("http://localhost:"+strconv.Itoa(destPort)+"/", "text/plain", strings.NewReader("oi"))
+	resp, err = cli.Post("http://"+dest.Address()+"/", "text/plain", strings.NewReader("oi"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -331,7 +323,7 @@ func TestNormalWithCheck(t *testing.T) {
 	dest.AddResponse(http.StatusOK, nil, nil)
 	reqCh = dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	resp, err = cli.Post("http://localhost:"+strconv.Itoa(destPort)+"/", "text/plain", strings.NewReader("oi"))
+	resp, err = cli.Post("http://"+dest.Address()+"/", "text/plain", strings.NewReader("oi"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -363,18 +355,14 @@ func TestNormalMaxAge(t *testing.T) {
 	// ////////////////////////////////
 
 	// プロキシ先を用意。
-	destPort, err := util.FreePort()
-	if err != nil {
-		t.Fatal(err)
-	}
-	dest, err := util.NewTestHttpServer(destPort)
+	dest, err := test.NewHttpServer(0)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer dest.Close()
 
 	// テストするプロキシサーバーを用意。
-	port, err := util.FreePort()
+	port, err := test.FreePort()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -403,7 +391,7 @@ func TestNormalMaxAge(t *testing.T) {
 	}, nil)
 	dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	resp, err := cli.Get("http://localhost:" + strconv.Itoa(destPort) + "/")
+	resp, err := cli.Get("http://" + dest.Address() + "/")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -418,7 +406,7 @@ func TestNormalMaxAge(t *testing.T) {
 	// 認証済み。
 	reqCh := dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	resp, err = cli.Get("http://localhost:" + strconv.Itoa(destPort) + "/")
+	resp, err = cli.Get("http://" + dest.Address() + "/")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -440,18 +428,14 @@ func TestEdoAccessProxyBody(t *testing.T) {
 	// ////////////////////////////////
 
 	// プロキシ先を用意。
-	destPort, err := util.FreePort()
-	if err != nil {
-		t.Fatal(err)
-	}
-	dest, err := util.NewTestHttpServer(destPort)
+	dest, err := test.NewHttpServer(0)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer dest.Close()
 
 	// テストするプロキシサーバーを用意。
-	port, err := util.FreePort()
+	port, err := test.FreePort()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -480,7 +464,7 @@ func TestEdoAccessProxyBody(t *testing.T) {
 	reqCh := dest.AddResponse(http.StatusOK, nil, nil)
 
 	body := "body da yo"
-	resp, err := cli.Post("http://localhost:"+strconv.Itoa(destPort)+"/", "text/plain", strings.NewReader(body))
+	resp, err := cli.Post("http://"+dest.Address()+"/", "text/plain", strings.NewReader(body))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -505,7 +489,7 @@ func TestNotProxyUrl(t *testing.T) {
 	// ////////////////////////////////
 
 	// テストするプロキシサーバーを用意。
-	port, err := util.FreePort()
+	port, err := test.FreePort()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -538,18 +522,14 @@ func TestSpecifyTa(t *testing.T) {
 	// ////////////////////////////////
 
 	// プロキシ先を用意。
-	destPort, err := util.FreePort()
-	if err != nil {
-		t.Fatal(err)
-	}
-	dest, err := util.NewTestHttpServer(destPort)
+	dest, err := test.NewHttpServer(0)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer dest.Close()
 
 	// テストするプロキシサーバーを用意。
-	port, err := util.FreePort()
+	port, err := test.FreePort()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -579,7 +559,7 @@ func TestSpecifyTa(t *testing.T) {
 	}, nil)
 	reqCh := dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	req, err := http.NewRequest("GET", "http://localhost:"+strconv.Itoa(destPort)+"/", nil)
+	req, err := http.NewRequest("GET", "http://"+dest.Address()+"/", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -599,7 +579,7 @@ func TestSpecifyTa(t *testing.T) {
 	// 認証済み。
 	reqCh = dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	req, err = http.NewRequest("GET", "http://localhost:"+strconv.Itoa(destPort)+"/", nil)
+	req, err = http.NewRequest("GET", "http://"+dest.Address()+"/", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -625,18 +605,14 @@ func TestSpecifyDestination(t *testing.T) {
 	// ////////////////////////////////
 
 	// プロキシ先を用意。
-	destPort, err := util.FreePort()
-	if err != nil {
-		t.Fatal(err)
-	}
-	dest, err := util.NewTestHttpServer(destPort)
+	dest, err := test.NewHttpServer(0)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer dest.Close()
 
 	// テストするプロキシサーバーを用意。
-	port, err := util.FreePort()
+	port, err := test.FreePort()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -667,7 +643,7 @@ func TestSpecifyDestination(t *testing.T) {
 		t.Fatal(err)
 	}
 	req.Header.Set(headerTaId, taId)
-	req.Header.Set(headerAccProxUri, "http://localhost:"+strconv.Itoa(destPort)+"/")
+	req.Header.Set(headerAccProxUri, "http://"+dest.Address()+"/")
 
 	resp, err := cli.Do(req)
 	if err != nil {
@@ -688,7 +664,7 @@ func TestSpecifyDestination(t *testing.T) {
 		t.Fatal(err)
 	}
 	req.Header.Set(headerTaId, taId)
-	req.Header.Set(headerAccProxUri, "http://localhost:"+strconv.Itoa(destPort)+"/")
+	req.Header.Set(headerAccProxUri, "http://"+dest.Address()+"/")
 
 	resp, err = cli.Do(req)
 	if err != nil {
@@ -710,7 +686,7 @@ func TestNoDestination(t *testing.T) {
 	// ////////////////////////////////
 
 	// テストするプロキシサーバーを用意。
-	port, err := util.FreePort()
+	port, err := test.FreePort()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -728,7 +704,7 @@ func TestNoDestination(t *testing.T) {
 	}
 	cli := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
 
-	unusedPort, err := util.FreePort()
+	unusedPort, err := test.FreePort()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -754,18 +730,14 @@ func TestErrorCancel(t *testing.T) {
 	// ////////////////////////////////
 
 	// プロキシ先を用意。
-	destPort, err := util.FreePort()
-	if err != nil {
-		t.Fatal(err)
-	}
-	dest, err := util.NewTestHttpServer(destPort)
+	dest, err := test.NewHttpServer(0)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer dest.Close()
 
 	// テストするプロキシサーバーを用意。
-	port, err := util.FreePort()
+	port, err := test.FreePort()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -785,7 +757,7 @@ func TestErrorCancel(t *testing.T) {
 
 	dest.AddResponse(http.StatusInternalServerError, map[string][]string{headerAuthTaErr: []string{"okashii yo"}}, []byte("okashii yo"))
 
-	resp, err := cli.Get("http://localhost:" + strconv.Itoa(destPort) + "/")
+	resp, err := cli.Get("http://" + dest.Address() + "/")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -812,18 +784,14 @@ func TestLackOfAuthenticationInformation(t *testing.T) {
 	// ////////////////////////////////
 
 	// プロキシ先を用意。
-	destPort, err := util.FreePort()
-	if err != nil {
-		t.Fatal(err)
-	}
-	dest, err := util.NewTestHttpServer(destPort)
+	dest, err := test.NewHttpServer(0)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer dest.Close()
 
 	// テストするプロキシサーバーを用意。
-	port, err := util.FreePort()
+	port, err := test.FreePort()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -847,7 +815,7 @@ func TestLackOfAuthenticationInformation(t *testing.T) {
 		headerAuthTaErr: []string{"start new session"},
 	}, nil)
 
-	resp, err := cli.Get("http://localhost:" + strconv.Itoa(destPort) + "/")
+	resp, err := cli.Get("http://" + dest.Address() + "/")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -865,7 +833,7 @@ func TestLackOfAuthenticationInformation(t *testing.T) {
 		headerAuthTaToken: []string{"token-da-yo"},
 	}, nil)
 
-	resp, err = cli.Get("http://localhost:" + strconv.Itoa(destPort) + "/")
+	resp, err = cli.Get("http://" + dest.Address() + "/")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -886,18 +854,14 @@ func TestNoSignKey(t *testing.T) {
 	// ////////////////////////////////
 
 	// プロキシ先を用意。
-	destPort, err := util.FreePort()
-	if err != nil {
-		t.Fatal(err)
-	}
-	dest, err := util.NewTestHttpServer(destPort)
+	dest, err := test.NewHttpServer(0)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer dest.Close()
 
 	// テストするプロキシサーバーを用意。
-	port, err := util.FreePort()
+	port, err := test.FreePort()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -925,7 +889,7 @@ func TestNoSignKey(t *testing.T) {
 	}, nil)
 	dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	resp, err := cli.Get("http://localhost:" + strconv.Itoa(destPort) + "/")
+	resp, err := cli.Get("http://" + dest.Address() + "/")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -968,7 +932,7 @@ func TestBigRequest(t *testing.T) {
 	}()
 
 	// テストするプロキシサーバーを用意。
-	port, err := util.FreePort()
+	port, err := test.FreePort()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1047,7 +1011,7 @@ func TestBigResponse(t *testing.T) {
 	}()
 
 	// テストするプロキシサーバーを用意。
-	port, err := util.FreePort()
+	port, err := test.FreePort()
 	if err != nil {
 		t.Fatal(err)
 	}
