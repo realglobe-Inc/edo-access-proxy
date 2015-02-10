@@ -130,3 +130,9 @@ func parseParameters(args ...string) (param *parameters, err error) {
 
 	return param, nil
 }
+
+func (param *parameters) LogFilePath() string       { return param.logPath }
+func (param *parameters) LogFileLimit() int64       { return 10 * (1 << 20) }
+func (param *parameters) LogFileNumber() int        { return 10 }
+func (param *parameters) LogFluentdAddress() string { return param.fluAddr }
+func (param *parameters) LogFluentdTag() string     { return param.fluTag }

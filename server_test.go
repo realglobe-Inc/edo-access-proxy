@@ -7,6 +7,7 @@ import (
 	"github.com/realglobe-Inc/edo/driver"
 	"github.com/realglobe-Inc/edo/util"
 	cryptoutil "github.com/realglobe-Inc/edo/util/crypto"
+	logutil "github.com/realglobe-Inc/edo/util/log"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"io"
 	"io/ioutil"
@@ -59,7 +60,7 @@ func init() {
 }
 
 func init() {
-	util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 }
 
 func newTestSystem() *system {
@@ -76,8 +77,8 @@ func newTestSystem() *system {
 // 正常系。事前検査無し。
 func TestNormalWithoutCheck(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	// プロキシ先を用意。
@@ -215,8 +216,8 @@ func TestNormalWithoutCheck(t *testing.T) {
 // 正常系。事前検査あり。
 func TestNormalWithCheck(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	// プロキシ先を用意。
@@ -357,8 +358,8 @@ func TestNormalWithCheck(t *testing.T) {
 // セッション期限の通知が Max-Age でも大丈夫なことの検査。
 func TestNormalMaxAge(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	// プロキシ先を用意。
@@ -434,8 +435,8 @@ func TestNormalMaxAge(t *testing.T) {
 // ボディがちゃんと転送されるかどうか。
 func TestEdoAccessProxyBody(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	// プロキシ先を用意。
@@ -499,8 +500,8 @@ func TestEdoAccessProxyBody(t *testing.T) {
 // Web プロキシ方式の URL 指定じゃなかったらちゃんとエラーを返すか。
 func TestNotProxyUrl(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	// テストするプロキシサーバーを用意。
@@ -532,8 +533,8 @@ func TestNotProxyUrl(t *testing.T) {
 // ヘッダフィールドで TA を指定できるか。
 func TestSpecifyTa(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	// プロキシ先を用意。
@@ -619,8 +620,8 @@ func TestSpecifyTa(t *testing.T) {
 // ヘッダフィールドで宛先を指定できるか。
 func TestSpecifyDestination(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	// プロキシ先を用意。
@@ -704,8 +705,8 @@ func TestSpecifyDestination(t *testing.T) {
 // プロキシ先に届かないときに 404 を返すか。
 func TestNoDestination(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	// テストするプロキシサーバーを用意。
@@ -748,8 +749,8 @@ func TestNoDestination(t *testing.T) {
 // プロキシ先から認証開始 (401 Unauthorized) 以外のエラーが返ったら中断してそのまま返すか。
 func TestErrorCancel(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	// プロキシ先を用意。
@@ -806,8 +807,8 @@ func TestErrorCancel(t *testing.T) {
 // プロキシ先から返された認証開始情報が足りなかったら 403 Forbidden を返すか。
 func TestLackOfAuthenticationInformation(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	// プロキシ先を用意。
@@ -880,8 +881,8 @@ func TestLackOfAuthenticationInformation(t *testing.T) {
 // 署名用の鍵が無かったら 403 Forbidden を返すか。
 func TestNoSignKey(t *testing.T) {
 	// ////////////////////////////////
-	// util.SetupConsoleLog("github.com/realglobe-Inc", level.ALL)
-	// defer util.SetupConsoleLog("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
 	// ////////////////////////////////
 
 	// プロキシ先を用意。

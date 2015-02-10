@@ -3,9 +3,9 @@ package main
 import (
 	"encoding/json"
 	"github.com/realglobe-Inc/edo/driver"
-	"github.com/realglobe-Inc/edo/util"
 	"github.com/realglobe-Inc/edo/util/crypto"
 	jsonutil "github.com/realglobe-Inc/edo/util/json"
+	logutil "github.com/realglobe-Inc/edo/util/log"
 	"github.com/realglobe-Inc/edo/util/server"
 	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"github.com/realglobe-Inc/go-lib-rg/rglog"
@@ -29,7 +29,7 @@ func main() {
 	defer exit()
 	defer rglog.Flush()
 
-	util.InitConsoleLog("github.com/realglobe-Inc")
+	logutil.InitConsole("github.com/realglobe-Inc")
 
 	param, err := parseParameters(os.Args...)
 	if err != nil {
@@ -39,8 +39,8 @@ func main() {
 		return
 	}
 
-	util.SetupConsoleLog("github.com/realglobe-Inc", param.consLv)
-	if err := util.SetupLog("github.com/realglobe-Inc", param.logType, param.logLv, param.logPath, param.fluAddr, param.fluTag); err != nil {
+	logutil.SetupConsole("github.com/realglobe-Inc", param.consLv)
+	if err := logutil.Setup("github.com/realglobe-Inc", param.logType, param.logLv, param); err != nil {
 		log.Err(erro.Unwrap(err))
 		log.Debug(err)
 		exitCode = 1
