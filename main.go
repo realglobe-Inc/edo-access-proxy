@@ -91,6 +91,7 @@ func mainCore(param *parameters) error {
 		param.threSize,
 		param.noVerify,
 	)
+	defer sys.close()
 	return serve(sys, param.socType, param.socPath, param.socPort, param.protType, nil)
 }
 

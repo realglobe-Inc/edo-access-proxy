@@ -99,3 +99,14 @@ func (sys *system) client(host string) (cli *http.Client, err error) {
 	}
 	return cli, nil
 }
+
+func (sys *system) close() error {
+	if err := sys.priKeyCont.Close(); err != nil {
+		return erro.Wrap(err)
+	} else if err := sys.sessCont.Close(); err != nil {
+		return erro.Wrap(err)
+	} else if err := sys.cliCont.Close(); err != nil {
+		return erro.Wrap(err)
+	}
+	return nil
+}

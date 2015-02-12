@@ -94,6 +94,7 @@ func TestNormalWithoutCheck(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
+	defer sys.close()
 	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
 	go serve(sys, "tcp", "", port, "http", shutCh)
@@ -229,6 +230,7 @@ func TestNormalWithCheck(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
+	defer sys.close()
 	sys.threSize = 1
 	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
@@ -367,6 +369,7 @@ func TestNormalMaxAge(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
+	defer sys.close()
 	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
 	go serve(sys, "tcp", "", port, "http", shutCh)
@@ -440,6 +443,7 @@ func TestEdoAccessProxyBody(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
+	defer sys.close()
 	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
 	go serve(sys, "tcp", "", port, "http", shutCh)
@@ -494,6 +498,7 @@ func TestNotProxyUrl(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
+	defer sys.close()
 	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
 	go serve(sys, "tcp", "", port, "http", shutCh)
@@ -534,6 +539,7 @@ func TestSpecifyTa(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
+	defer sys.close()
 	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
 	go serve(sys, "tcp", "", port, "http", shutCh)
@@ -617,6 +623,7 @@ func TestSpecifyDestination(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
+	defer sys.close()
 	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
 	go serve(sys, "tcp", "", port, "http", shutCh)
@@ -691,6 +698,7 @@ func TestNoDestination(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
+	defer sys.close()
 	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
 	go serve(sys, "tcp", "", port, "http", shutCh)
@@ -742,6 +750,7 @@ func TestErrorCancel(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
+	defer sys.close()
 	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
 	go serve(sys, "tcp", "", port, "http", shutCh)
@@ -796,6 +805,7 @@ func TestLackOfAuthenticationInformation(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
+	defer sys.close()
 	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
 	go serve(sys, "tcp", "", port, "http", shutCh)
@@ -866,6 +876,7 @@ func TestNoSignKey(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
+	defer sys.close()
 	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
 	go serve(sys, "tcp", "", port, "http", shutCh)
@@ -937,6 +948,7 @@ func TestBigRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
+	defer sys.close()
 	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
 	go serve(sys, "tcp", "", port, "http", shutCh)
@@ -1016,6 +1028,7 @@ func TestBigResponse(t *testing.T) {
 		t.Fatal(err)
 	}
 	sys := newTestSystem()
+	defer sys.close()
 	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
 	go serve(sys, "tcp", "", port, "http", shutCh)
