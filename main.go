@@ -74,7 +74,7 @@ func mainCore(param *parameters) error {
 			},
 			nil,
 			func(data []byte) (interface{}, error) {
-				return crypto.ParsePrivateKey(data)
+				return crypto.ParsePem(data)
 			},
 			param.caStaleDur, param.caExpiDur)
 		log.Info("Use file private key container " + param.priKeyContPath + ".")
