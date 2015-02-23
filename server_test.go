@@ -8,6 +8,7 @@ import (
 	cryptoutil "github.com/realglobe-Inc/edo/util/crypto"
 	logutil "github.com/realglobe-Inc/edo/util/log"
 	"github.com/realglobe-Inc/edo/util/test"
+	"github.com/realglobe-Inc/go-lib-rg/erro"
 	"github.com/realglobe-Inc/go-lib-rg/rglog/level"
 	"io"
 	"io/ioutil"
@@ -74,6 +75,43 @@ func newTestSystem() *system {
 	}
 }
 
+func setupAccessProxy(sys *system) (retSys *system, urlHead string, shutCh chan struct{}, err error) {
+	port, err := test.FreePort()
+	if err != nil {
+		return nil, "", nil, erro.Wrap(err)
+	}
+
+	if sys == nil {
+		sys = newTestSystem()
+	}
+	shutCh = make(chan struct{}, 10)
+	urlHead = "http://localhost:" + strconv.Itoa(port)
+
+	go serve(sys, "tcp", "", port, "http", shutCh)
+	// 起動待ち。
+	for i := time.Nanosecond; i < time.Second; i *= 2 {
+		req, err := http.NewRequest("GET", urlHead+okPath, nil)
+		if err != nil {
+			sys.close()
+			shutCh <- struct{}{}
+			return nil, "", nil, erro.Wrap(err)
+		}
+		resp, err := (&http.Client{}).Do(req)
+		if err != nil {
+			// ちょっと待って再挑戦。
+			time.Sleep(i)
+			continue
+		}
+		// ちゃんとつながったので終わり。
+		resp.Body.Close()
+		return sys, urlHead, shutCh, nil
+	}
+	// 時間切れ。
+	sys.close()
+	shutCh <- struct{}{}
+	return nil, "", nil, erro.New("time out")
+}
+
 // 正常系。事前検査無し。
 func TestNormalWithoutCheck(t *testing.T) {
 	// ////////////////////////////////
@@ -89,20 +127,14 @@ func TestNormalWithoutCheck(t *testing.T) {
 	defer dest.Close()
 
 	// テストするプロキシサーバーを用意。
-	port, err := test.FreePort()
+	sys, urlHead, shutCh, err := setupAccessProxy(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := newTestSystem()
 	defer sys.close()
-	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
-	go serve(sys, "tcp", "", port, "http", shutCh)
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
-	proxyUrl, err := url.Parse("http://localhost:" + strconv.Itoa(port))
+	proxyUrl, err := url.Parse(urlHead)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -225,21 +257,16 @@ func TestNormalWithCheck(t *testing.T) {
 	defer dest.Close()
 
 	// テストするプロキシサーバーを用意。
-	port, err := test.FreePort()
+	sys := newTestSystem()
+	sys.threSize = 1
+	_, urlHead, shutCh, err := setupAccessProxy(sys)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := newTestSystem()
 	defer sys.close()
-	sys.threSize = 1
-	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
-	go serve(sys, "tcp", "", port, "http", shutCh)
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
-	proxyUrl, err := url.Parse("http://localhost:" + strconv.Itoa(port))
+	proxyUrl, err := url.Parse(urlHead)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -364,20 +391,14 @@ func TestNormalMaxAge(t *testing.T) {
 	defer dest.Close()
 
 	// テストするプロキシサーバーを用意。
-	port, err := test.FreePort()
+	sys, urlHead, shutCh, err := setupAccessProxy(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := newTestSystem()
 	defer sys.close()
-	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
-	go serve(sys, "tcp", "", port, "http", shutCh)
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
-	proxyUrl, err := url.Parse("http://localhost:" + strconv.Itoa(port))
+	proxyUrl, err := url.Parse(urlHead)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -404,7 +425,7 @@ func TestNormalMaxAge(t *testing.T) {
 		t.Error(headerAccProxErr + " is " + resp.Header.Get(headerAccProxErr))
 	}
 
-	time.Sleep(10 * time.Millisecond)
+	//time.Sleep(10 * time.Millisecond)
 
 	// 認証済み。
 	reqCh := dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
@@ -438,20 +459,14 @@ func TestEdoAccessProxyBody(t *testing.T) {
 	defer dest.Close()
 
 	// テストするプロキシサーバーを用意。
-	port, err := test.FreePort()
+	sys, urlHead, shutCh, err := setupAccessProxy(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := newTestSystem()
 	defer sys.close()
-	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
-	go serve(sys, "tcp", "", port, "http", shutCh)
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
-	proxyUrl, err := url.Parse("http://localhost:" + strconv.Itoa(port))
+	proxyUrl, err := url.Parse(urlHead)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -493,22 +508,16 @@ func TestNotProxyUrl(t *testing.T) {
 	// ////////////////////////////////
 
 	// テストするプロキシサーバーを用意。
-	port, err := test.FreePort()
+	sys, urlHead, shutCh, err := setupAccessProxy(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := newTestSystem()
 	defer sys.close()
-	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
-	go serve(sys, "tcp", "", port, "http", shutCh)
-
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
 
 	cli := &http.Client{}
 
-	resp, err := cli.Get("http://localhost:" + strconv.Itoa(port) + "/")
+	resp, err := cli.Get(urlHead + "/")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -534,20 +543,14 @@ func TestSpecifyTa(t *testing.T) {
 	defer dest.Close()
 
 	// テストするプロキシサーバーを用意。
-	port, err := test.FreePort()
+	sys, urlHead, shutCh, err := setupAccessProxy(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := newTestSystem()
 	defer sys.close()
-	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
-	go serve(sys, "tcp", "", port, "http", shutCh)
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
-	proxyUrl, err := url.Parse("http://localhost:" + strconv.Itoa(port))
+	proxyUrl, err := url.Parse(urlHead)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -618,18 +621,12 @@ func TestSpecifyDestination(t *testing.T) {
 	defer dest.Close()
 
 	// テストするプロキシサーバーを用意。
-	port, err := test.FreePort()
+	sys, urlHead, shutCh, err := setupAccessProxy(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := newTestSystem()
 	defer sys.close()
-	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
-	go serve(sys, "tcp", "", port, "http", shutCh)
-
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
 
 	cli := &http.Client{}
 
@@ -645,7 +642,7 @@ func TestSpecifyDestination(t *testing.T) {
 	}, nil)
 	reqCh := dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	req, err := http.NewRequest("GET", "http://localhost:"+strconv.Itoa(port), nil)
+	req, err := http.NewRequest("GET", urlHead, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -666,7 +663,7 @@ func TestSpecifyDestination(t *testing.T) {
 	// 認証済み。
 	reqCh = dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	req, err = http.NewRequest("GET", "http://localhost:"+strconv.Itoa(port), nil)
+	req, err = http.NewRequest("GET", urlHead, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -693,20 +690,14 @@ func TestNoDestination(t *testing.T) {
 	// ////////////////////////////////
 
 	// テストするプロキシサーバーを用意。
-	port, err := test.FreePort()
+	sys, urlHead, shutCh, err := setupAccessProxy(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := newTestSystem()
 	defer sys.close()
-	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
-	go serve(sys, "tcp", "", port, "http", shutCh)
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
-	proxyUrl, err := url.Parse("http://localhost:" + strconv.Itoa(port))
+	proxyUrl, err := url.Parse(urlHead)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -745,20 +736,14 @@ func TestErrorCancel(t *testing.T) {
 	defer dest.Close()
 
 	// テストするプロキシサーバーを用意。
-	port, err := test.FreePort()
+	sys, urlHead, shutCh, err := setupAccessProxy(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := newTestSystem()
 	defer sys.close()
-	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
-	go serve(sys, "tcp", "", port, "http", shutCh)
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
-	proxyUrl, err := url.Parse("http://localhost:" + strconv.Itoa(port))
+	proxyUrl, err := url.Parse(urlHead)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -800,20 +785,14 @@ func TestLackOfAuthenticationInformation(t *testing.T) {
 	defer dest.Close()
 
 	// テストするプロキシサーバーを用意。
-	port, err := test.FreePort()
+	sys, urlHead, shutCh, err := setupAccessProxy(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := newTestSystem()
 	defer sys.close()
-	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
-	go serve(sys, "tcp", "", port, "http", shutCh)
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
-	proxyUrl, err := url.Parse("http://localhost:" + strconv.Itoa(port))
+	proxyUrl, err := url.Parse(urlHead)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -871,20 +850,14 @@ func TestNoSignKey(t *testing.T) {
 	defer dest.Close()
 
 	// テストするプロキシサーバーを用意。
-	port, err := test.FreePort()
+	sys, urlHead, shutCh, err := setupAccessProxy(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := newTestSystem()
 	defer sys.close()
-	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
-	go serve(sys, "tcp", "", port, "http", shutCh)
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
-	proxyUrl, err := url.Parse("http://localhost:" + strconv.Itoa(port))
+	proxyUrl, err := url.Parse(urlHead)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -943,20 +916,14 @@ func TestBigRequest(t *testing.T) {
 	}()
 
 	// テストするプロキシサーバーを用意。
-	port, err := test.FreePort()
+	sys, urlHead, shutCh, err := setupAccessProxy(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := newTestSystem()
 	defer sys.close()
-	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
-	go serve(sys, "tcp", "", port, "http", shutCh)
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
-	proxyUrl, err := url.Parse("http://localhost:" + strconv.Itoa(port))
+	proxyUrl, err := url.Parse(urlHead)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1023,20 +990,14 @@ func TestBigResponse(t *testing.T) {
 	}()
 
 	// テストするプロキシサーバーを用意。
-	port, err := test.FreePort()
+	sys, urlHead, shutCh, err := setupAccessProxy(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sys := newTestSystem()
 	defer sys.close()
-	shutCh := make(chan struct{}, 10)
 	defer func() { shutCh <- struct{}{} }()
-	go serve(sys, "tcp", "", port, "http", shutCh)
 
-	// サーバ起動待ち。
-	time.Sleep(10 * time.Millisecond)
-
-	proxyUrl, err := url.Parse("http://localhost:" + strconv.Itoa(port))
+	proxyUrl, err := url.Parse(urlHead)
 	if err != nil {
 		t.Fatal(err)
 	}

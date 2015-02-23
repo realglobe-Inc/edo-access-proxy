@@ -98,12 +98,16 @@ func mainCore(param *parameters) error {
 // 振り分ける。
 const (
 	proxyApiPath = "/"
+	okPath       = "/ok"
 )
 
 func serve(sys *system, socType, socPath string, socPort int, protType string, shutCh chan struct{}) error {
 	routes := map[string]server.HandlerFunc{
 		proxyApiPath: func(w http.ResponseWriter, r *http.Request) error {
 			return proxyApi(sys, w, r)
+		},
+		okPath: func(w http.ResponseWriter, r *http.Request) error {
+			return nil
 		},
 	}
 	return server.TerminableServe(socType, socPath, socPort, protType, routes, shutCh, wrapper)
