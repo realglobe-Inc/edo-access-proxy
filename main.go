@@ -2,11 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/realglobe-Inc/edo-toolkit/driver"
-	"github.com/realglobe-Inc/edo-toolkit/util/crypto"
-	jsonutil "github.com/realglobe-Inc/edo-toolkit/util/json"
-	logutil "github.com/realglobe-Inc/edo-toolkit/util/log"
-	"github.com/realglobe-Inc/edo-toolkit/util/server"
+	"github.com/realglobe-Inc/edo-lib/crypto"
+	"github.com/realglobe-Inc/edo-lib/driver"
+	jsonutil "github.com/realglobe-Inc/edo-lib/json"
+	logutil "github.com/realglobe-Inc/edo-lib/log"
+	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog"
 	"github.com/realglobe-Inc/go-lib/rglog/level"
