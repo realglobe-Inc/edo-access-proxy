@@ -30,8 +30,8 @@ go のインストールは http://golang.org/ を見よ。
 go をインストールしたら、
 
 ```shell
-go get github.com/realglobe-Inc/edo-toolkit
-go install github.com/realglobe-Inc/edo-toolkit/edo-access-proxy
+go get github.com/realglobe-Inc/edo-access-proxy
+go install github.com/realglobe-Inc/edo-access-proxy
 ```
 
 適宜、依存ライブラリを `go get` すること。
@@ -250,6 +250,6 @@ edo-access-proxy にてエラーが発生した場合、レスポンスに以下
 + セッションの確立に失敗した場合、その時のレスポンスを返す。
 
 
-## ライセンス
+## 4. ライセンス
 
 Apache License, Version 2.0
