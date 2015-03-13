@@ -29,8 +29,6 @@ limitations under the License.
 
 ```shell
 go get github.com/realglobe-Inc/edo-access-proxy
-cd ${GOPATH}/src/github.com/realglobe-Inc/edo-access-proxy
-git checkout development
 go install github.com/realglobe-Inc/edo-access-proxy
 ```
 
