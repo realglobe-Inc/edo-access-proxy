@@ -17,20 +17,20 @@ limitations under the License.
 
 # edo-access-proxy
 
-edo-auth TA 認証を通過するための処理を代行するサーバープログラム。
-
-プロキシリクエストを受け取ったら、プロキシ先とのセッションを確立してから、リクエストを転送する。
+[edo-auth] TA 認証を通過するための処理を代行するサーバープログラム。
 
 
 ## 1. インストール
 
-go が必要。
-go のインストールは http://golang.org/ を見よ。
+[go] が必要。
+[go] のインストールは http://golang.org/doc/install を参照のこと。
 
-go をインストールしたら、
+[go] をインストールしたら、
 
 ```shell
 go get github.com/realglobe-Inc/edo-access-proxy
+cd ${GOPATH}/src/github.com/realglobe-Inc/edo-access-proxy
+git checkout development
 go install github.com/realglobe-Inc/edo-access-proxy
 ```
 
@@ -57,6 +57,8 @@ go install github.com/realglobe-Inc/edo-access-proxy
 秘密鍵ディレクトリのパスは起動オプションで指定する。
 初期値はバイナリファイルのあるディレクトリにある private_keys ディレクトリである。
 
+称する TA の ID が / や % を含む場合は [URL エンコード]する。
+
 
 ### 2.2. 起動
 
@@ -71,7 +73,8 @@ ${GOPATH}/bin/edo-access-proxy
 
 |オプション名|初期値|値|
 |:--|:--|:--|
-|-priKeyContPath|バイナリファイルのあるディレクトリの private_keys ディレクトリ|秘密鍵ディレクトリのパス|
+|-noVerify|`false`|転送先の SSL 証明書を検証しないかどうか|
+|-priKeyContPath|バイナリファイルのあるディレクトリの private_keys|秘密鍵ディレクトリのパス|
 |-socPort|16050|待ち受けポート番号|
 |-taId||デフォルトで称する TA の ID|
 
@@ -84,17 +87,17 @@ ${GOPATH}/bin/edo-access-proxy -h
 
 ### 2.4. デーモン化
 
-単独ではデーモンとして実行できないため、supervisor 等と組み合わせて行う。
+単独ではデーモンとして実行できないため、[Supervisor] 等と組み合わせて行う。
 
 
 ## 3. 動作仕様
 
-edo-auth TA 認証を通過するための処理を代行する。
+[edo-auth] TA 認証を通過するための処理を代行する。
 
 
 ### 3.1. 概要
 
-リクエストを受け取ったら、指定された転送先 URI を edo-auth TA 認証を備えた TA であるとみなし、必要なら前処理を行い、リクエストヘッダを整備して転送する。
+リクエストを受け取ったら、指定された転送先 URI を [edo-auth] TA 認証を備えた TA であるとみなし、必要なら前処理を行い、リクエストヘッダを整備して転送する。
 
 
 ### 3.2. リクエストの受け取り
@@ -156,6 +159,8 @@ Host: localhost:16050
 リクエストボディが小さい場合は、1 回だけで済むことがあるが、2 回送ることになったときはリクエストボディも 2 回送られる。
 リクエストボディが大きい場合は、必ず 2 回リクエストを送ることになるが、リクエストボディの転送は 1 回しか行わない。
 
+以下、動作順で小節を分ける。
+
 
 #### 3.3.1. 消費したリクエストヘッダの削除
 
@@ -203,8 +208,7 @@ Host: localhost:16050
 401 かつ含む場合、認証ヘッダの追加を行ってから、2 回目の転送を行う。
 
 そうでない場合、1 回目がセッション検査なら、2 回目の転送を行う。
-セッション検査でなければ、レスポンスを返送する。
-
+セッション検査でなければ、転送レスポンスをリクエスト元に返送する。
 
 
 #### 3.3.6. 認証ヘッダの追加
@@ -229,12 +233,12 @@ Host: localhost:16050
 
 #### 3.3.8. 2 回目の転送レスポンスの検査
 
-2 回目の転送のレスポンスが X-Edo-Auth-Ta-Error を含まなければ、称する TA と転送先を紐付けてセッションを保存する。
+2 回目の転送のレスポンスが X-Edo-Auth-Ta-Error を含まなければ、称する TA と転送先に紐付けてセッションを保存する。
 
 
 #### 3.3.9. レスポンスの返送
 
-転送レスポンスをそのまま返送する。
+転送レスポンスをそのままリクエスト元に返送する。
 
 
 ### 3.4 エラーレスポンス
@@ -253,3 +257,10 @@ edo-access-proxy にてエラーが発生した場合、レスポンスに以下
 ## 4. ライセンス
 
 Apache License, Version 2.0
+
+
+<!-- 参照 -->
+[Supervisor]: http://supervisord.org/
+[URL エンコード]: http://tools.ietf.org/html/rfc1866#section-8.2.1
+[edo-auth]: https://github.com/realglobe-Inc/edo-auth/tree/development/
+[go]: http://golang.org/
