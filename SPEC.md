@@ -133,6 +133,8 @@ X-Edo-User-Map: eyJhbGciOiJub25lIn0.eyJyZWFkZXIiOnsiYXRfdGFnIjoiMkV5d2gxWjR0WiJ9
 ## 4. リクエストの転送
 
 [TA 間連携プロトコル]を参照のこと。
+
+X-Edo-Ap-User-Map, X-Edo-Ap-To,, X-Edo-Ap-To-Ta ヘッダを削除する。
 仲介コードは HTTP ヘッダにて付加する。
 
 
