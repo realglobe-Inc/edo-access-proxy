@@ -65,11 +65,11 @@ TA 間連携を代行する。
 * X-Edo-Ap-User-Map
     * 必須。
       アカウントタグからアカウント情報へのマップをクレームセットとする `alg` が `none` な JWT。
-* X-Edo-Ap-Dest
+* X-Edo-Ap-To
     * 必須。
       転送先 URI。
-* X-Edo-Ap-Dest-Ta
-    * 転送先 TA の ID が X-Edo-Ap-Dest の値からパス以下を除いた部分でない場合は必須。
+* X-Edo-Ap-To-Ta
+    * 転送先 TA の ID が X-Edo-Ap-To の値からパス以下を除いた部分でない場合は必須。
       転送先 TA の ID。
 
 アカウント情報は以下を含む。
@@ -91,7 +91,7 @@ TA 間連携を代行する。
 ```http
 GET / HTTP/1.1
 Host: localhost:16050
-X-Edo-Ap-Dest: https://to.example.org/api/writer/profile
+X-Edo-Ap-To: https://to.example.org/api/writer/profile
 X-Edo-User-Map: eyJhbGciOiJub25lIn0.eyJyZWFkZXIiOnsiYXRfdGFnIjoiMkV5d2gxWjR0WiJ9
     LCJ3cml0ZXIiOnsiaXNzIjoiaHR0cHM6Ly9pZHAuZXhhbXBsZS5vcmciLCJzdWIiOiIwN0JGRjFE
     MzcwNkQxNjlEIn19.
