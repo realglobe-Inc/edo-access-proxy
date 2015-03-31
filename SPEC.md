@@ -31,7 +31,7 @@ TA 間連携を代行する。
 ## 1. 概要
 
 1. リクエストを受け取る。
-2. 関連するユーザーが属す全ての IdP について次の 1, 2 を行う。
+2. 関連するアカウントが属す全ての IdP について次の 1, 2 を行う。
     1. IdP に、仲介リクエストを送る。
     2. IdP から、仲介コードを受け取る。
 3. 要請先 TA に、全ての仲介コードと共にリクエストを転送する。
@@ -39,8 +39,7 @@ TA 間連携を代行する。
 5. レスポンスを転送する。
 
 ```
-+--------+
-|        |                    +--------+
++--------+                    +--------+
 |        |----(1) request---->|        |                     +--------+
 |        |                    |        |----(2-1) coop.----->|        |
 |        |                    |        |          request    |  IdP   |
@@ -55,37 +54,38 @@ TA 間連携を代行する。
 |        |                    |        |                     |        |
 |        |                    |        |<---(4) response-----|        |
 |        |<---(5) response----|        |                     +--------+
-|        |                    +--------+
-+--------+
++--------+                    +--------+
 ```
 
 
 ## 1. リクエストの受け取り
 
-以下のパラメータを利用する。
+以下のヘッダを利用する。
 
-* X-Edo-Ap-User-Map
+* X-Access-Proxy-Users
     * 必須。
-      ユーザータグからユーザー情報へのマップをクレームセットとする JWT。
-* X-Edo-Ap-Dest
+      アカウントタグからアカウント情報へのマップをクレームセットとする `alg` が `none` な JWT。
+* X-Access-Proxy-To
     * 必須。
       転送先 URI。
-* X-Edo-Ap-Dest-Ta
-    * 転送先 TA の ID が X-Edo-Ap-Dest の値からパス以下を除いた部分でない場合は必須。
+* X-Access-Proxy-To-Ta
+    * 転送先 TA の ID が X-Access-Proxy-To の値からパス以下を除いた部分でない場合は必須。
       転送先 TA の ID。
 
-ユーザー情報は以下を含む。
+アカウント情報は以下を含む。
 
 * **`at_tag`**
     * 処理の主体なら必須。
       そうでなければ無し。
       アクセストークンタグ。
 * **`iss`**
-    * 処理の主体でないユーザーなら必須。
-      IdP の ID。
+    * 処理の主体でないアカウントなら必須。
+      アカウントが属す IdP の ID。
 * **`sub`**
-    * 処理の主体でないユーザーなら必須。
-      ユーザー ID。
+    * 処理の主体でないアカウントなら必須。
+      アカウント ID。
+
+X-Access-Proxy-Users に処理の主体が含まれない、または、複数の処理の主体が含まれる場合、エラーを返す。
 
 
 ### 1.1. リクエスト例
@@ -93,8 +93,8 @@ TA 間連携を代行する。
 ```http
 GET / HTTP/1.1
 Host: localhost:16050
-X-Edo-Ap-Dest: https://to.example.org/api/writer/profile
-X-Edo-User-Map: eyJhbGciOiJub25lIn0.eyJyZWFkZXIiOnsiYXRfdGFnIjoiMkV5d2gxWjR0WiJ9
+X-Access-Proxy-To: https://to.example.org/api/writer/profile
+X-Access-Proxy-Users: eyJhbGciOiJub25lIn0.eyJyZWFkZXIiOnsiYXRfdGFnIjoiMkV5d2gxWjR0WiJ9
     LCJ3cml0ZXIiOnsiaXNzIjoiaHR0cHM6Ly9pZHAuZXhhbXBsZS5vcmciLCJzdWIiOiIwN0JGRjFE
     MzcwNkQxNjlEIn19.
 ```
@@ -120,9 +120,9 @@ X-Edo-User-Map: eyJhbGciOiJub25lIn0.eyJyZWFkZXIiOnsiYXRfdGFnIjoiMkV5d2gxWjR0WiJ9
 
 [TA 間連携プロトコル]も参照のこと。
 
-* X-Edo-User-Map に含まれるユーザーが処理の主体のみ、かつ、ユーザータグ、アクセストークンタグ、転送先 TA に紐付く、期限に余裕のあるセッションがある場合、
+* X-Access-Proxy-Users に含まれるアカウントが処理の主体のみ、かつ、アカウントタグ、アクセストークンタグ、転送先 TA に紐付く、期限に余裕のあるセッションがある場合、
     * 転送へ。
-* そうでなければ、X-Edo-User-Map のユーザータグで IdP に仲介リクエストを送る。
+* そうでなければ、X-Access-Proxy-Users のアカウントタグで IdP に仲介リクエストを送る。
 
 
 ## 3. IdP からの仲介コード受け取り
@@ -135,13 +135,15 @@ X-Edo-User-Map: eyJhbGciOiJub25lIn0.eyJyZWFkZXIiOnsiYXRfdGFnIjoiMkV5d2gxWjR0WiJ9
 ## 4. リクエストの転送
 
 [TA 間連携プロトコル]を参照のこと。
+
+X-Access-Proxy-Users, X-Access-Proxy-To, X-Access-Proxy-To-Ta ヘッダを削除する。
 仲介コードは HTTP ヘッダにて付加する。
 
 
 ## 5. レスポンスの受け取り
 
-* Cookie に X-Edo-Cooperation がある場合、
-    * ユーザータグ、アクセストークンタグ、転送先 TA に紐付けて保存する。
+* Cookie に Edo-Cooperation がある場合、
+    * アカウントタグ、アクセストークンタグ、転送先 TA に紐付けて保存する。
 * そうでなく、セッションを使った上での [TA 間連携プロトコル]のエラーだった場合、
     * セッションを削除して、IdP への仲介リクエストからやり直す。
 
@@ -158,7 +160,7 @@ edo-access-proxy にてエラーが発生した場合、レスポンスに以下
 
 |ヘッダ名|値|
 |:--|:--|
-|X-Edo-Ap-Error|適当なメッセージ|
+|X-Access-Proxy-Error|適当なメッセージ|
 
 
 ## 8. 外部データ
@@ -210,14 +212,14 @@ edo-access-proxy にてエラーが発生した場合、レスポンスに以下
 
 * ID
 * 有効期限
-* ユーザータグ
+* アカウントタグ
 * アクセストークンタグ
 * 転送先 TA の ID
 
 以下の操作が必要。
 
 * 保存
-* ユーザータグ、アクセストークンタグ、転送先 TA の ID による取得
+* アカウントタグ、アクセストークンタグ、転送先 TA の ID による取得
 
 
 <!-- 参照 -->
