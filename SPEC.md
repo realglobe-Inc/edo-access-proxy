@@ -62,7 +62,7 @@ TA 間連携を代行する。
 
 以下のヘッダを利用する。
 
-* X-Edo-Ap-User-Map
+* X-Edo-Ap-Users
     * 必須。
       アカウントタグからアカウント情報へのマップをクレームセットとする `alg` が `none` な JWT。
 * X-Edo-Ap-To
@@ -92,7 +92,7 @@ TA 間連携を代行する。
 GET / HTTP/1.1
 Host: localhost:16050
 X-Edo-Ap-To: https://to.example.org/api/writer/profile
-X-Edo-User-Map: eyJhbGciOiJub25lIn0.eyJyZWFkZXIiOnsiYXRfdGFnIjoiMkV5d2gxWjR0WiJ9
+X-Edo-Users: eyJhbGciOiJub25lIn0.eyJyZWFkZXIiOnsiYXRfdGFnIjoiMkV5d2gxWjR0WiJ9
     LCJ3cml0ZXIiOnsiaXNzIjoiaHR0cHM6Ly9pZHAuZXhhbXBsZS5vcmciLCJzdWIiOiIwN0JGRjFE
     MzcwNkQxNjlEIn19.
 ```
@@ -118,9 +118,9 @@ X-Edo-User-Map: eyJhbGciOiJub25lIn0.eyJyZWFkZXIiOnsiYXRfdGFnIjoiMkV5d2gxWjR0WiJ9
 
 [TA 間連携プロトコル]も参照のこと。
 
-* X-Edo-User-Map に含まれるアカウントが処理の主体のみ、かつ、アカウントタグ、アクセストークンタグ、転送先 TA に紐付く、期限に余裕のあるセッションがある場合、
+* X-Edo-Users に含まれるアカウントが処理の主体のみ、かつ、アカウントタグ、アクセストークンタグ、転送先 TA に紐付く、期限に余裕のあるセッションがある場合、
     * 転送へ。
-* そうでなければ、X-Edo-User-Map のアカウントタグで IdP に仲介リクエストを送る。
+* そうでなければ、X-Edo-Users のアカウントタグで IdP に仲介リクエストを送る。
 
 
 ## 3. IdP からの仲介コード受け取り
@@ -134,7 +134,7 @@ X-Edo-User-Map: eyJhbGciOiJub25lIn0.eyJyZWFkZXIiOnsiYXRfdGFnIjoiMkV5d2gxWjR0WiJ9
 
 [TA 間連携プロトコル]を参照のこと。
 
-X-Edo-Ap-User-Map, X-Edo-Ap-To,, X-Edo-Ap-To-Ta ヘッダを削除する。
+X-Edo-Ap-Users, X-Edo-Ap-To, X-Edo-Ap-To-Ta ヘッダを削除する。
 仲介コードは HTTP ヘッダにて付加する。
 
 
