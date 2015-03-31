@@ -142,7 +142,7 @@ X-Access-Proxy-Users, X-Access-Proxy-To, X-Access-Proxy-To-Ta ヘッダを削除
 
 ## 5. レスポンスの受け取り
 
-* Cookie に X-Edo-Cooperation がある場合、
+* Cookie に Edo-Cooperation がある場合、
     * アカウントタグ、アクセストークンタグ、転送先 TA に紐付けて保存する。
 * そうでなく、セッションを使った上での [TA 間連携プロトコル]のエラーだった場合、
     * セッションを削除して、IdP への仲介リクエストからやり直す。
