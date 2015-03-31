@@ -62,14 +62,14 @@ TA 間連携を代行する。
 
 以下のヘッダを利用する。
 
-* X-Edo-Ap-Users
+* X-Access-Proxy-Users
     * 必須。
       アカウントタグからアカウント情報へのマップをクレームセットとする `alg` が `none` な JWT。
-* X-Edo-Ap-To
+* X-Access-Proxy-To
     * 必須。
       転送先 URI。
-* X-Edo-Ap-To-Ta
-    * 転送先 TA の ID が X-Edo-Ap-To の値からパス以下を除いた部分でない場合は必須。
+* X-Access-Proxy-To-Ta
+    * 転送先 TA の ID が X-Access-Proxy-To の値からパス以下を除いた部分でない場合は必須。
       転送先 TA の ID。
 
 アカウント情報は以下を含む。
@@ -85,7 +85,7 @@ TA 間連携を代行する。
     * 処理の主体でないアカウントなら必須。
       アカウント ID。
 
-X-Edo-Users に処理の主体が含まれない、または、複数の処理の主体が含まれる場合、エラーを返す。
+X-Access-Proxy-Users に処理の主体が含まれない、または、複数の処理の主体が含まれる場合、エラーを返す。
 
 
 ### 1.1. リクエスト例
@@ -93,8 +93,8 @@ X-Edo-Users に処理の主体が含まれない、または、複数の処理�
 ```http
 GET / HTTP/1.1
 Host: localhost:16050
-X-Edo-Ap-To: https://to.example.org/api/writer/profile
-X-Edo-Users: eyJhbGciOiJub25lIn0.eyJyZWFkZXIiOnsiYXRfdGFnIjoiMkV5d2gxWjR0WiJ9
+X-Access-Proxy-To: https://to.example.org/api/writer/profile
+X-Access-Proxy-Users: eyJhbGciOiJub25lIn0.eyJyZWFkZXIiOnsiYXRfdGFnIjoiMkV5d2gxWjR0WiJ9
     LCJ3cml0ZXIiOnsiaXNzIjoiaHR0cHM6Ly9pZHAuZXhhbXBsZS5vcmciLCJzdWIiOiIwN0JGRjFE
     MzcwNkQxNjlEIn19.
 ```
@@ -120,9 +120,9 @@ X-Edo-Users: eyJhbGciOiJub25lIn0.eyJyZWFkZXIiOnsiYXRfdGFnIjoiMkV5d2gxWjR0WiJ9
 
 [TA 間連携プロトコル]も参照のこと。
 
-* X-Edo-Users に含まれるアカウントが処理の主体のみ、かつ、アカウントタグ、アクセストークンタグ、転送先 TA に紐付く、期限に余裕のあるセッションがある場合、
+* X-Access-Proxy-Users に含まれるアカウントが処理の主体のみ、かつ、アカウントタグ、アクセストークンタグ、転送先 TA に紐付く、期限に余裕のあるセッションがある場合、
     * 転送へ。
-* そうでなければ、X-Edo-Users のアカウントタグで IdP に仲介リクエストを送る。
+* そうでなければ、X-Access-Proxy-Users のアカウントタグで IdP に仲介リクエストを送る。
 
 
 ## 3. IdP からの仲介コード受け取り
@@ -136,7 +136,7 @@ X-Edo-Users: eyJhbGciOiJub25lIn0.eyJyZWFkZXIiOnsiYXRfdGFnIjoiMkV5d2gxWjR0WiJ9
 
 [TA 間連携プロトコル]を参照のこと。
 
-X-Edo-Ap-Users, X-Edo-Ap-To, X-Edo-Ap-To-Ta ヘッダを削除する。
+X-Access-Proxy-Users, X-Access-Proxy-To, X-Access-Proxy-To-Ta ヘッダを削除する。
 仲介コードは HTTP ヘッダにて付加する。
 
 
@@ -160,7 +160,7 @@ edo-access-proxy にてエラーが発生した場合、レスポンスに以下
 
 |ヘッダ名|値|
 |:--|:--|
-|X-Edo-Ap-Error|適当なメッセージ|
+|X-Access-Proxy-Error|適当なメッセージ|
 
 
 ## 8. 外部データ
