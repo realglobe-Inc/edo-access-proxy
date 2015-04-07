@@ -74,7 +74,7 @@ ${GOPATH}/bin/edo-access-proxy
 |-noVerify|`false`|転送先の SSL 証明書を検証しないかどうか|
 |-priKeyContPath|バイナリファイルのあるディレクトリの private_keys|秘密鍵ディレクトリのパス|
 |-socPort|16050|待ち受けポート番号|
-|-taId||デフォルトで称する TA の ID|
+|-taId||標準で称する TA の ID|
 
 その他のオプションは以下で確認すること。
 
