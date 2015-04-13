@@ -136,7 +136,7 @@ X-Access-Proxy-Users: eyJhbGciOiJub25lIn0.eyJyZWFkZXIiOnsiYXRfdGFnIjoiMkV5d2gxWj
 
 [TA 間連携プロトコル]を参照のこと。
 
-X-Access-Proxy-Users, X-Access-Proxy-To, X-Access-Proxy-To-Ta ヘッダを削除する。
+リクエストから X-Access-Proxy-Users, X-Access-Proxy-To, X-Access-Proxy-To-Ta ヘッダを削除する。
 仲介コードは HTTP ヘッダにて付加する。
 
 
@@ -144,13 +144,14 @@ X-Access-Proxy-Users, X-Access-Proxy-To, X-Access-Proxy-To-Ta ヘッダを削除
 
 * Cookie に Edo-Cooperation がある場合、
     * アカウントタグ、アクセストークンタグ、転送先 TA に紐付けて保存する。
-* そうでなく、セッションを使った上での [TA 間連携プロトコル]のエラーだった場合、
-    * セッションを削除して、IdP への仲介リクエストからやり直す。
+* そうでなく、セッションを利用した上での [TA 間連携プロトコル]のエラーだった場合、
+    * セッションを削除する。
+      IdP への仲介リクエストからやり直す。
 
 
 ## 7. レスポンスの転送
 
-普通に。
+特別な処理は無し。
 
 
 ## 8. エラーレスポンス
@@ -197,6 +198,7 @@ edo-access-proxy にてエラーが発生した場合、レスポンスに以下
 * タグ
 * 有効期限
 * 発行 IdP の ID
+* 許可スコープ
 
 以下の操作が必要。
 
