@@ -94,34 +94,34 @@ func parseParameters(args ...string) (param *parameters, err error) {
 
 	param = &parameters{}
 
-	flags.Var(level.Var(&param.consLv, level.INFO), "consLv", "Console log level.")
-	flags.StringVar(&param.logType, "logType", "", "Extra log type.")
-	flags.Var(level.Var(&param.logLv, level.ALL), "logLv", "Extra log level.")
-	flags.StringVar(&param.logPath, "logPath", filepath.Join(filepath.Dir(os.Args[0]), "log", label+".log"), "File log path.")
-	flags.StringVar(&param.fluAddr, "fluAddr", "localhost:24224", "fluentd address.")
-	flags.StringVar(&param.fluTag, "fluTag", "edo."+label, "fluentd tag.")
+	flags.Var(level.Var(&param.consLv, level.INFO), "consLv", "Console log level")
+	flags.StringVar(&param.logType, "logType", "", "Extra log type")
+	flags.Var(level.Var(&param.logLv, level.ALL), "logLv", "Extra log level")
+	flags.StringVar(&param.logPath, "logPath", filepath.Join(filepath.Dir(os.Args[0]), "log", label+".log"), "File log path")
+	flags.StringVar(&param.fluAddr, "fluAddr", "localhost:24224", "fluentd address")
+	flags.StringVar(&param.fluTag, "fluTag", "edo."+label, "fluentd tag")
 
-	flags.StringVar(&param.priKeyContType, "priKeyContType", "file", "Private key container type.")
-	flags.StringVar(&param.priKeyContPath, "priKeyContPath", filepath.Join(filepath.Dir(os.Args[0]), "private_keys"), "Private key container directory.")
+	flags.StringVar(&param.priKeyContType, "priKeyContType", "file", "Private key container type")
+	flags.StringVar(&param.priKeyContPath, "priKeyContPath", filepath.Join(filepath.Dir(os.Args[0]), "private_keys"), "Private key container directory")
 
-	flags.StringVar(&param.socType, "socType", "tcp", "Socket type.")
-	flags.StringVar(&param.socPath, "socPath", filepath.Join(filepath.Dir(os.Args[0]), "run", label+".soc"), "UNIX socket path.")
-	flags.IntVar(&param.socPort, "socPort", 16050, "TCP socket port.")
-	flags.StringVar(&param.protType, "protType", "http", "Protocol type.")
+	flags.StringVar(&param.socType, "socType", "tcp", "Socket type")
+	flags.StringVar(&param.socPath, "socPath", filepath.Join(filepath.Dir(os.Args[0]), "run", label+".soc"), "UNIX socket path")
+	flags.IntVar(&param.socPort, "socPort", 16050, "TCP socket port")
+	flags.StringVar(&param.protType, "protType", "http", "Protocol type")
 
-	flags.DurationVar(&param.caStaleDur, "caStaleDur", 5*time.Minute, "Cache fresh duration.")
-	flags.DurationVar(&param.caExpiDur, "caExpiDur", 30*time.Minute, "Cache expiration duration.")
+	flags.DurationVar(&param.caStaleDur, "caStaleDur", 5*time.Minute, "Cache fresh duration")
+	flags.DurationVar(&param.caExpiDur, "caExpiDur", 30*time.Minute, "Cache expiration duration")
 
-	flags.StringVar(&param.taId, "taId", "", "Default TA ID.")
-	flags.StringVar(&param.hashName, "hashName", "sha256", "Sign hash type.")
+	flags.StringVar(&param.taId, "taId", "", "Default TA ID")
+	flags.StringVar(&param.hashName, "hashName", "sha256", "Sign hash type")
 
-	flags.DurationVar(&param.sessMargin, "sessMargin", time.Minute, "Margin for session expiration duration.")
-	flags.DurationVar(&param.cliExpiDur, "cliExpiDur", 10*time.Minute, "Client expiration duration.")
-	flags.IntVar(&param.threSize, "threSize", 8192, "Maximum byte size of request body for skipping session check.")
-	flags.BoolVar(&param.noVerify, "noVerify", false, "Skipping SSL verification.")
+	flags.DurationVar(&param.sessMargin, "sessMargin", time.Minute, "Margin for session expiration duration")
+	flags.DurationVar(&param.cliExpiDur, "cliExpiDur", 10*time.Minute, "Client expiration duration")
+	flags.IntVar(&param.threSize, "threSize", 8192, "Maximum byte size of request body for skipping session check")
+	flags.BoolVar(&param.noVerify, "noVerify", false, "Skipping SSL verification")
 
 	var config string
-	flags.StringVar(&config, "f", "", "Config file path.")
+	flags.StringVar(&config, "f", "", "Config file path")
 
 	// 実行引数を読んで、設定ファイルを指定させてから、
 	// 設定ファイルを読んで、また実行引数を読む。
@@ -131,7 +131,7 @@ func parseParameters(args ...string) (param *parameters, err error) {
 			if !os.IsNotExist(err) {
 				return nil, erro.Wrap(err)
 			}
-			log.Warn("Config file " + config + " is not exist.")
+			log.Warn("Config file " + config + " is not exist")
 		} else {
 			flags.Parse(strings.Fields(string(buff)))
 		}
@@ -139,7 +139,7 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.Parse(args[1:])
 
 	if l := len(flags.Args()); l > 0 {
-		log.Warn("Ignore extra parameters ", flags.Args(), ".")
+		log.Warn("Ignore extra parameters ", flags.Args())
 	}
 
 	return param, nil

@@ -41,26 +41,26 @@ func TestReadHead(t *testing.T) {
 	head, err := readHead(strings.NewReader(original), len(original)+1)
 	if err != io.EOF {
 		if err == nil {
-			t.Error(err)
+			t.Fatal(err)
 		} else {
 			t.Fatal(err)
 		}
 	} else if string(head) != original {
-		t.Error(string(head))
+		t.Fatal(string(head))
 	}
 
 	head, err = readHead(strings.NewReader(original), len(original))
 	if err != nil && err != io.EOF {
 		t.Fatal(err)
 	} else if string(head) != original {
-		t.Error(string(head))
+		t.Fatal(string(head))
 	}
 
 	head, err = readHead(strings.NewReader(original), len(original)-1)
 	if err != nil {
 		t.Fatal(err)
 	} else if string(head) != original[:len(original)-1] {
-		t.Error(string(head))
+		t.Fatal(string(head))
 	}
 }
 
@@ -157,20 +157,20 @@ func TestNormalWithoutCheck(t *testing.T) {
 	// 素通りする。
 	dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	resp, err := cli.Get("http://" + dest.Address() + "/")
+	resp, err := cli.Get(dest.URL + "/")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		t.Error("status is ", resp.StatusCode, " not ", http.StatusOK)
+		t.Fatal("status is ", resp.StatusCode, " not ", http.StatusOK)
 	} else if resp.Header.Get(headerAccProxErr) != "" {
-		t.Error(headerAccProxErr + " is " + resp.Header.Get(headerAccProxErr))
+		t.Fatal(headerAccProxErr + " is " + resp.Header.Get(headerAccProxErr))
 	} else if buff, err := ioutil.ReadAll(resp.Body); err != nil {
 		t.Fatal(err)
 	} else if string(buff) != "body da yo" {
-		t.Error("body is " + string(buff) + " not body da yo")
+		t.Fatal("body is " + string(buff) + " not body da yo")
 	}
 
 	// 認証する。
@@ -184,36 +184,36 @@ func TestNormalWithoutCheck(t *testing.T) {
 	}, nil)
 	reqCh := dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	resp, err = cli.Get("http://" + dest.Address() + "/")
+	resp, err = cli.Get(dest.URL + "/")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		t.Error("status is ", resp.StatusCode, " not ", http.StatusOK)
+		t.Fatal("status is ", resp.StatusCode, " not ", http.StatusOK)
 	} else if resp.Header.Get(headerAccProxErr) != "" {
-		t.Error(headerAccProxErr + " is " + resp.Header.Get(headerAccProxErr))
+		t.Fatal(headerAccProxErr + " is " + resp.Header.Get(headerAccProxErr))
 	} else if buff, err := ioutil.ReadAll(resp.Body); err != nil {
 		t.Fatal(err)
 	} else if string(buff) != "body da yo" {
-		t.Error("body is " + string(buff) + " not body da yo")
+		t.Fatal("body is " + string(buff) + " not body da yo")
 	}
 
 	req := <-reqCh
 	if cook, err := req.Cookie(cookTaSess); err != nil {
 		t.Fatal(err)
 	} else if cook.Value != sessId {
-		t.Error(cookTaSess + " is " + cook.Value + " not " + sessId)
+		t.Fatal(cookTaSess + " is " + cook.Value + " not " + sessId)
 	}
 	if req.Header.Get(headerAuthTaId) != sys.taId {
-		t.Error(headerTaId + " is " + req.Header.Get(headerTaId) + " not " + sys.taId)
+		t.Fatal(headerTaId + " is " + req.Header.Get(headerTaId) + " not " + sys.taId)
 	}
 	if req.Header.Get(headerAuthHashFunc) != sys.hashName {
-		t.Error(headerAuthHashFunc + " is " + req.Header.Get(headerAuthHashFunc) + " not " + sys.hashName)
+		t.Fatal(headerAuthHashFunc + " is " + req.Header.Get(headerAuthHashFunc) + " not " + sys.hashName)
 	}
 	if req.Header.Get(headerAuthTaTokenSig) == "" {
-		t.Error(headerAuthTaTokenSig + " is not exist")
+		t.Fatal(headerAuthTaTokenSig + " is not exist")
 	}
 	rawSig, err := base64.StdEncoding.DecodeString(req.Header.Get(headerAuthTaTokenSig))
 	if err != nil {
@@ -232,27 +232,27 @@ func TestNormalWithoutCheck(t *testing.T) {
 	// 認証済み。
 	reqCh = dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	resp, err = cli.Get("http://" + dest.Address() + "/")
+	resp, err = cli.Get(dest.URL + "/")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		t.Error("status is ", resp.StatusCode, " not ", http.StatusOK)
+		t.Fatal("status is ", resp.StatusCode, " not ", http.StatusOK)
 	} else if resp.Header.Get(headerAccProxErr) != "" {
-		t.Error(headerAccProxErr + " is " + resp.Header.Get(headerAccProxErr))
+		t.Fatal(headerAccProxErr + " is " + resp.Header.Get(headerAccProxErr))
 	} else if buff, err := ioutil.ReadAll(resp.Body); err != nil {
 		t.Fatal(err)
 	} else if string(buff) != "body da yo" {
-		t.Error("body is " + string(buff) + " not body da yo")
+		t.Fatal("body is " + string(buff) + " not body da yo")
 	}
 
 	req = <-reqCh
 	if cook, err := req.Cookie(cookTaSess); err != nil {
 		t.Fatal(err)
 	} else if cook.Value != sessId {
-		t.Error(cookTaSess + " is " + cook.Value + " not " + sessId)
+		t.Fatal(cookTaSess + " is " + cook.Value + " not " + sessId)
 	}
 }
 
@@ -290,20 +290,20 @@ func TestNormalWithCheck(t *testing.T) {
 	dest.AddResponse(http.StatusOK, nil, nil)
 	dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	resp, err := cli.Post("http://"+dest.Address()+"/", "text/plain", strings.NewReader("oi"))
+	resp, err := cli.Post(dest.URL+"/", "text/plain", strings.NewReader("oi"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		t.Error("status is ", resp.StatusCode, " not ", http.StatusOK)
+		t.Fatal("status is ", resp.StatusCode, " not ", http.StatusOK)
 	} else if resp.Header.Get(headerAccProxErr) != "" {
-		t.Error(headerAccProxErr + " is " + resp.Header.Get(headerAccProxErr))
+		t.Fatal(headerAccProxErr + " is " + resp.Header.Get(headerAccProxErr))
 	} else if buff, err := ioutil.ReadAll(resp.Body); err != nil {
 		t.Fatal(err)
 	} else if string(buff) != "body da yo" {
-		t.Error("body is " + string(buff) + " not body da yo")
+		t.Fatal("body is " + string(buff) + " not body da yo")
 	}
 
 	// 認証する。
@@ -317,36 +317,36 @@ func TestNormalWithCheck(t *testing.T) {
 	}, nil)
 	reqCh := dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	resp, err = cli.Post("http://"+dest.Address()+"/", "text/plain", strings.NewReader("oi"))
+	resp, err = cli.Post(dest.URL+"/", "text/plain", strings.NewReader("oi"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		t.Error("status is ", resp.StatusCode, " not ", http.StatusOK)
+		t.Fatal("status is ", resp.StatusCode, " not ", http.StatusOK)
 	} else if resp.Header.Get(headerAccProxErr) != "" {
-		t.Error(headerAccProxErr + " is " + resp.Header.Get(headerAccProxErr))
+		t.Fatal(headerAccProxErr + " is " + resp.Header.Get(headerAccProxErr))
 	} else if buff, err := ioutil.ReadAll(resp.Body); err != nil {
 		t.Fatal(err)
 	} else if string(buff) != "body da yo" {
-		t.Error("body is " + string(buff) + " not body da yo")
+		t.Fatal("body is " + string(buff) + " not body da yo")
 	}
 
 	req := <-reqCh
 	if cook, err := req.Cookie(cookTaSess); err != nil {
 		t.Fatal(err)
 	} else if cook.Value != sessId {
-		t.Error(cookTaSess + " is " + cook.Value + " not " + sessId)
+		t.Fatal(cookTaSess + " is " + cook.Value + " not " + sessId)
 	}
 	if req.Header.Get(headerAuthTaId) != sys.taId {
-		t.Error(headerTaId + " is " + req.Header.Get(headerTaId) + " not " + sys.taId)
+		t.Fatal(headerTaId + " is " + req.Header.Get(headerTaId) + " not " + sys.taId)
 	}
 	if req.Header.Get(headerAuthHashFunc) != sys.hashName {
-		t.Error(headerAuthHashFunc + " is " + req.Header.Get(headerAuthHashFunc) + " not " + sys.hashName)
+		t.Fatal(headerAuthHashFunc + " is " + req.Header.Get(headerAuthHashFunc) + " not " + sys.hashName)
 	}
 	if req.Header.Get(headerAuthTaTokenSig) == "" {
-		t.Error(headerAuthTaTokenSig + " is not exist")
+		t.Fatal(headerAuthTaTokenSig + " is not exist")
 	}
 	rawSig, err := base64.StdEncoding.DecodeString(req.Header.Get(headerAuthTaTokenSig))
 	if err != nil {
@@ -366,27 +366,27 @@ func TestNormalWithCheck(t *testing.T) {
 	dest.AddResponse(http.StatusOK, nil, nil)
 	reqCh = dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	resp, err = cli.Post("http://"+dest.Address()+"/", "text/plain", strings.NewReader("oi"))
+	resp, err = cli.Post(dest.URL+"/", "text/plain", strings.NewReader("oi"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		t.Error("status is ", resp.StatusCode, " not ", http.StatusOK)
+		t.Fatal("status is ", resp.StatusCode, " not ", http.StatusOK)
 	} else if resp.Header.Get(headerAccProxErr) != "" {
-		t.Error(headerAccProxErr + " is " + resp.Header.Get(headerAccProxErr))
+		t.Fatal(headerAccProxErr + " is " + resp.Header.Get(headerAccProxErr))
 	} else if buff, err := ioutil.ReadAll(resp.Body); err != nil {
 		t.Fatal(err)
 	} else if string(buff) != "body da yo" {
-		t.Error("body is " + string(buff) + " not body da yo")
+		t.Fatal("body is " + string(buff) + " not body da yo")
 	}
 
 	req = <-reqCh
 	if cook, err := req.Cookie(cookTaSess); err != nil {
 		t.Fatal(err)
 	} else if cook.Value != sessId {
-		t.Error(cookTaSess + " is " + cook.Value + " not " + sessId)
+		t.Fatal(cookTaSess + " is " + cook.Value + " not " + sessId)
 	}
 }
 
@@ -429,14 +429,14 @@ func TestNormalMaxAge(t *testing.T) {
 	}, nil)
 	dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	resp, err := cli.Get("http://" + dest.Address() + "/")
+	resp, err := cli.Get(dest.URL + "/")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.Header.Get(headerAccProxErr) != "" {
-		t.Error(headerAccProxErr + " is " + resp.Header.Get(headerAccProxErr))
+		t.Fatal(headerAccProxErr + " is " + resp.Header.Get(headerAccProxErr))
 	}
 
 	//time.Sleep(10 * time.Millisecond)
@@ -444,7 +444,7 @@ func TestNormalMaxAge(t *testing.T) {
 	// 認証済み。
 	reqCh := dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	resp, err = cli.Get("http://" + dest.Address() + "/")
+	resp, err = cli.Get(dest.URL + "/")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -454,7 +454,7 @@ func TestNormalMaxAge(t *testing.T) {
 	if cook, err := req.Cookie(cookTaSess); err != nil {
 		t.Fatal(err)
 	} else if cook.Value != sessId {
-		t.Error(cookTaSess + " is " + cook.Value + " not " + sessId)
+		t.Fatal(cookTaSess + " is " + cook.Value + " not " + sessId)
 	}
 }
 
@@ -497,7 +497,7 @@ func TestEdoAccessProxyBody(t *testing.T) {
 	reqCh := dest.AddResponse(http.StatusOK, nil, nil)
 
 	body := "body da yo"
-	resp, err := cli.Post("http://"+dest.Address()+"/", "text/plain", strings.NewReader(body))
+	resp, err := cli.Post(dest.URL+"/", "text/plain", strings.NewReader(body))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -510,7 +510,7 @@ func TestEdoAccessProxyBody(t *testing.T) {
 	}
 
 	if string(buff) != body {
-		t.Error("body is " + string(buff) + " not " + body)
+		t.Fatal("body is " + string(buff) + " not " + body)
 	}
 }
 
@@ -538,7 +538,7 @@ func TestNotProxyUrl(t *testing.T) {
 	defer resp.Body.Close()
 
 	if resp.Header.Get(headerAccProxErr) == "" {
-		t.Error("no " + headerAccProxErr)
+		t.Fatal("no " + headerAccProxErr)
 	}
 }
 
@@ -582,7 +582,7 @@ func TestSpecifyTa(t *testing.T) {
 	}, nil)
 	reqCh := dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	req, err := http.NewRequest("GET", "http://"+dest.Address()+"/", nil)
+	req, err := http.NewRequest("GET", dest.URL+"/", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -596,13 +596,13 @@ func TestSpecifyTa(t *testing.T) {
 
 	req = <-reqCh
 	if req.Header.Get(headerAuthTaId) != taId {
-		t.Error(headerAuthTaId + " is " + req.Header.Get(headerAuthTaId) + " not " + taId)
+		t.Fatal(headerAuthTaId + " is " + req.Header.Get(headerAuthTaId) + " not " + taId)
 	}
 
 	// 認証済み。
 	reqCh = dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	req, err = http.NewRequest("GET", "http://"+dest.Address()+"/", nil)
+	req, err = http.NewRequest("GET", dest.URL+"/", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -616,7 +616,7 @@ func TestSpecifyTa(t *testing.T) {
 
 	req = <-reqCh
 	if req.Header.Get(headerAuthTaId) != "" {
-		t.Error(headerAuthTaId + " is " + req.Header.Get(headerAuthTaId) + " not empty")
+		t.Fatal(headerAuthTaId + " is " + req.Header.Get(headerAuthTaId) + " not empty")
 	}
 }
 
@@ -661,7 +661,7 @@ func TestSpecifyDestination(t *testing.T) {
 		t.Fatal(err)
 	}
 	req.Header.Set(headerTaId, taId)
-	req.Header.Set(headerAccProxUri, "http://"+dest.Address()+"/")
+	req.Header.Set(headerAccProxUri, dest.URL+"/")
 
 	resp, err := cli.Do(req)
 	if err != nil {
@@ -671,7 +671,7 @@ func TestSpecifyDestination(t *testing.T) {
 
 	req = <-reqCh
 	if req.Header.Get(headerTaId) != taId {
-		t.Error(headerTaId + " is " + req.Header.Get(headerTaId) + " not " + taId)
+		t.Fatal(headerTaId + " is " + req.Header.Get(headerTaId) + " not " + taId)
 	}
 
 	// 認証済み。
@@ -682,7 +682,7 @@ func TestSpecifyDestination(t *testing.T) {
 		t.Fatal(err)
 	}
 	req.Header.Set(headerTaId, taId)
-	req.Header.Set(headerAccProxUri, "http://"+dest.Address()+"/")
+	req.Header.Set(headerAccProxUri, dest.URL+"/")
 
 	resp, err = cli.Do(req)
 	if err != nil {
@@ -692,7 +692,7 @@ func TestSpecifyDestination(t *testing.T) {
 
 	req = <-reqCh
 	if req.Header.Get(headerTaId) != taId {
-		t.Error(headerTaId + " is " + req.Header.Get(headerTaId) + " not " + taId)
+		t.Fatal(headerTaId + " is " + req.Header.Get(headerTaId) + " not " + taId)
 	}
 }
 
@@ -729,9 +729,9 @@ func TestNoDestination(t *testing.T) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusNotFound {
-		t.Error("status is ", resp.StatusCode, " not ", http.StatusNotFound)
+		t.Fatal("status is ", resp.StatusCode, " not ", http.StatusNotFound)
 	} else if resp.Header.Get(headerAccProxErr) == "" {
-		t.Error("no " + headerAccProxErr)
+		t.Fatal("no " + headerAccProxErr)
 	}
 }
 
@@ -765,22 +765,22 @@ func TestErrorCancel(t *testing.T) {
 
 	dest.AddResponse(http.StatusInternalServerError, map[string][]string{headerAuthTaErr: []string{"okashii yo"}}, []byte("okashii yo"))
 
-	resp, err := cli.Get("http://" + dest.Address() + "/")
+	resp, err := cli.Get(dest.URL + "/")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusInternalServerError {
-		t.Error("status is ", resp.StatusCode, " not ", http.StatusInternalServerError)
+		t.Fatal("status is ", resp.StatusCode, " not ", http.StatusInternalServerError)
 	} else if resp.Header.Get(headerAuthTaErr) == "" {
-		t.Error("no " + headerAuthTaErr)
+		t.Fatal("no " + headerAuthTaErr)
 	}
 	buff, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
 	} else if string(buff) != "okashii yo" {
-		t.Error("body is " + string(buff) + " not okashii yo")
+		t.Fatal("body is " + string(buff) + " not okashii yo")
 	}
 }
 
@@ -818,16 +818,16 @@ func TestLackOfAuthenticationInformation(t *testing.T) {
 		headerAuthTaErr: []string{"start new session"},
 	}, nil)
 
-	resp, err := cli.Get("http://" + dest.Address() + "/")
+	resp, err := cli.Get(dest.URL + "/")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusForbidden {
-		t.Error("status is ", resp.StatusCode, " not ", http.StatusForbidden)
+		t.Fatal("status is ", resp.StatusCode, " not ", http.StatusForbidden)
 	} else if resp.Header.Get(headerAccProxErr) == "" {
-		t.Error("no " + headerAccProxErr)
+		t.Fatal("no " + headerAccProxErr)
 	}
 
 	// X-Edo-Auth-Ta-Session が無い。
@@ -836,16 +836,16 @@ func TestLackOfAuthenticationInformation(t *testing.T) {
 		headerAuthTaToken: []string{"token-da-yo"},
 	}, nil)
 
-	resp, err = cli.Get("http://" + dest.Address() + "/")
+	resp, err = cli.Get(dest.URL + "/")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusForbidden {
-		t.Error("status is ", resp.StatusCode, " not ", http.StatusForbidden)
+		t.Fatal("status is ", resp.StatusCode, " not ", http.StatusForbidden)
 	} else if resp.Header.Get(headerAccProxErr) == "" {
-		t.Error("no " + headerAccProxErr)
+		t.Fatal("no " + headerAccProxErr)
 	}
 }
 
@@ -887,16 +887,16 @@ func TestNoSignKey(t *testing.T) {
 	}, nil)
 	dest.AddResponse(http.StatusOK, nil, []byte("body da yo"))
 
-	resp, err := cli.Get("http://" + dest.Address() + "/")
+	resp, err := cli.Get(dest.URL + "/")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusForbidden {
-		t.Error("status is ", resp.StatusCode, " not ", http.StatusForbidden)
+		t.Fatal("status is ", resp.StatusCode, " not ", http.StatusForbidden)
 	} else if resp.Header.Get(headerAccProxErr) == "" {
-		t.Error("no " + headerAccProxErr)
+		t.Fatal("no " + headerAccProxErr)
 	}
 }
 
@@ -970,11 +970,11 @@ func TestBigRequest(t *testing.T) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		t.Error(resp)
+		t.Fatal(resp)
 	} else if buff, err := ioutil.ReadAll(resp.Body); err != nil {
 		t.Fatal(err)
 	} else if string(buff) != "zenbu yonda" {
-		t.Error(buff)
+		t.Fatal(buff)
 	}
 }
 
@@ -1036,7 +1036,7 @@ func TestBigResponse(t *testing.T) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		t.Error(resp)
+		t.Fatal(resp)
 	}
 
 	select {

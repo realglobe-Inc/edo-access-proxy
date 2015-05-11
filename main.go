@@ -66,7 +66,7 @@ func main() {
 		return
 	}
 
-	log.Info("Shut down.")
+	log.Info("Shut down")
 }
 
 // system を準備する。
@@ -91,9 +91,9 @@ func mainCore(param *parameters) error {
 				return crypto.ParsePem(data)
 			},
 			param.caStaleDur, param.caExpiDur)
-		log.Info("Use file private key container " + param.priKeyContPath + ".")
+		log.Info("Use file private key container " + param.priKeyContPath)
 	default:
-		return erro.New("invalid code container type " + param.priKeyContType + ".")
+		return erro.New("invalid code container type " + param.priKeyContType)
 	}
 
 	sys := newSystem(
