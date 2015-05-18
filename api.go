@@ -54,7 +54,7 @@ func proxyApi(sys *system, w http.ResponseWriter, r *http.Request) error {
 		// ヘッダによる指定。
 		if u, err := url.Parse(rawUri); err != nil {
 			// URL 指定がおかしい。
-			return erro.Wrap(server.NewStatusError(http.StatusBadRequest, "invalid uri "+rawUri, erro.Wrap(err)))
+			return erro.Wrap(server.NewError(http.StatusBadRequest, "invalid uri "+rawUri, err))
 		} else {
 			r.Header.Del(headerAccProxUri)
 			r.URL = u
@@ -62,7 +62,7 @@ func proxyApi(sys *system, w http.ResponseWriter, r *http.Request) error {
 		}
 	} else if !strings.HasPrefix(r.RequestURI, "http://") && !strings.HasPrefix(r.RequestURI, "https://") {
 		// URL 指定がプロキシ形式になってない。
-		return erro.Wrap(server.NewStatusError(http.StatusBadRequest, "no scheme in request uri", nil))
+		return erro.Wrap(server.NewError(http.StatusBadRequest, "no scheme in request uri", nil))
 	}
 
 	buff, err := readHead(r.Body, sys.threSize)
@@ -119,7 +119,7 @@ func tryForward(sys *system, w http.ResponseWriter, r *http.Request, body []byte
 	if err != nil {
 		err = erro.Wrap(err)
 		if isDestinationError(err) {
-			return erro.Wrap(server.NewStatusError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
+			return erro.Wrap(server.NewError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
 		} else {
 			return err
 		}
@@ -204,7 +204,7 @@ func checkAndForward(sys *system, w http.ResponseWriter, r *http.Request, bodyHe
 	if err != nil {
 		err = erro.Wrap(err)
 		if isDestinationError(err) {
-			return erro.Wrap(server.NewStatusError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
+			return erro.Wrap(server.NewError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
 		} else {
 			return err
 		}
@@ -267,7 +267,7 @@ func checkAndForward(sys *system, w http.ResponseWriter, r *http.Request, bodyHe
 	if err != nil {
 		err = erro.Wrap(err)
 		if isDestinationError(err) {
-			return erro.Wrap(server.NewStatusError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
+			return erro.Wrap(server.NewError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
 		} else {
 			return err
 		}
@@ -289,9 +289,9 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, bodyHead 
 
 	sess, sessToken := parseSession(ckResp)
 	if sess == nil {
-		return erro.Wrap(server.NewStatusError(http.StatusForbidden, "no cookie "+cookTaSess, nil))
+		return erro.Wrap(server.NewError(http.StatusForbidden, "no cookie "+cookTaSess, nil))
 	} else if sessToken == "" {
-		return erro.Wrap(server.NewStatusError(http.StatusForbidden, "no header field "+headerAuthTaToken, nil))
+		return erro.Wrap(server.NewError(http.StatusForbidden, "no header field "+headerAuthTaToken, nil))
 	}
 	cli, err := sys.client(r.Host)
 	if err != nil {
@@ -307,7 +307,7 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, bodyHead 
 	if err != nil {
 		return erro.Wrap(err)
 	} else if priKey == nil {
-		return erro.Wrap(server.NewStatusError(http.StatusForbidden, "no private key of "+taId, nil))
+		return erro.Wrap(server.NewError(http.StatusForbidden, "no private key of "+taId, nil))
 	}
 
 	// 秘密鍵を用意できた。
@@ -338,7 +338,7 @@ func startSession(sys *system, w http.ResponseWriter, r *http.Request, bodyHead 
 	if err != nil {
 		err = erro.Wrap(err)
 		if isDestinationError(err) {
-			return erro.Wrap(server.NewStatusError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
+			return erro.Wrap(server.NewError(http.StatusNotFound, "cannot connect "+uriBase(r.URL), err))
 		} else {
 			return err
 		}
@@ -382,7 +382,7 @@ func isDestinationError(err error) bool {
 			}
 		case *erro.Tracer:
 			err = e.Cause()
-		case *server.StatusError:
+		case *server.Error:
 			if e.Cause() != nil {
 				err = e.Cause()
 			} else {
