@@ -179,7 +179,7 @@ func responseError(w http.ResponseWriter, err error) {
 	// エラー起源を追加。
 	w.Header().Set(headerAccProxErr, v.Msg)
 
-	w.Header().Set("Content-Type", server.ContentTypeJson)
+	w.Header().Set("Content-Type", contTypeJson)
 	w.Header().Set("Content-Length", strconv.Itoa(len(buff)))
 	w.WriteHeader(v.Stat)
 	if _, err := w.Write(buff); err != nil {
