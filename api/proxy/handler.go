@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// TA 間連携要請代行エンドポイント。
 package proxy
 
 import (
