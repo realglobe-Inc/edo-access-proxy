@@ -15,17 +15,22 @@
 package session
 
 import (
-	"time"
+	"github.com/realglobe-Inc/edo-lib/test"
+	"testing"
 )
 
-// バックエンドのデータもこのプログラム専用の前提。
+const (
+	test_tag = "edo-test"
+)
 
-// セッションの格納庫。
-type Db interface {
-	// 取得。
-	GetByParams(acntTag, tokTag, toTa string) (*Element, error)
+func TestRedisDb(t *testing.T) {
+	red, err := test.NewRedisServer()
+	if err != nil {
+		t.Fatal(err)
+	} else if red == nil {
+		t.SkipNow()
+	}
+	defer red.Close()
 
-	// 保存。
-	// exp: 保存期限。この期間以降は Get できなくて良い。
-	Save(elem *Element, exp time.Time) error
+	testDb(t, NewRedisDb(red.Pool(), test_tag))
 }
