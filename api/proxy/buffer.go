@@ -33,18 +33,18 @@ type buffer struct {
 	memW   *bytes.Buffer
 	memR   *bytes.Reader
 
-	filePrefix string
-	file       *os.File
-	fileW      *bufio.Writer
-	fileR      *bufio.Reader
+	filePref string
+	file     *os.File
+	fileW    *bufio.Writer
+	fileR    *bufio.Reader
 }
 
-func newBuffer(base io.ReadCloser, memMax int, filePrefix string) *buffer {
+func newBuffer(base io.ReadCloser, memMax int, filePref string) *buffer {
 	return &buffer{
-		base:       base,
-		memMax:     memMax,
-		memW:       &bytes.Buffer{},
-		filePrefix: filePrefix,
+		base:     base,
+		memMax:   memMax,
+		memW:     &bytes.Buffer{},
+		filePref: filePref,
 	}
 }
 
@@ -122,7 +122,7 @@ func (this *buffer) save(data []byte) (err error) {
 			return nil
 		}
 
-		this.file, err = ioutil.TempFile("", this.filePrefix)
+		this.file, err = ioutil.TempFile("", this.filePref)
 		if err != nil {
 			return erro.Wrap(err)
 		}
