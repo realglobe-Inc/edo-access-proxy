@@ -160,9 +160,9 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 
 // セッションを利用して TA 間連携する。
 func (this *handler) proxyWithSession(w http.ResponseWriter, r *http.Request, sess *session.Element, sender *requtil.Request) (err error) {
-	var buff *bodyBuffer
+	var buff *buffer
 	if r.Body != nil {
-		buff = newBodyBuffer(r.Body, this.fileThres, tempPrefix)
+		buff = newBuffer(r.Body, this.fileThres, tempPrefix)
 		defer buff.dispose()
 		r.Body = buff
 	}
