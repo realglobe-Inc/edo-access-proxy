@@ -14,7 +14,9 @@
 
 package session
 
-import ()
+import (
+	"time"
+)
 
 // バックエンドのデータもこのプログラム専用の前提。
 
@@ -24,5 +26,6 @@ type Db interface {
 	GetByParams(acntTag, tokTag, toTa string) (*Element, error)
 
 	// 保存。
-	Save(elem *Element) error
+	// exp: 保存期限。この期間以降は Get できなくて良い。
+	Save(elem *Element, exp time.Time) error
 }

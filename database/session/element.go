@@ -15,6 +15,8 @@
 package session
 
 import (
+	"encoding/json"
+	"github.com/realglobe-Inc/go-lib/erro"
 	"time"
 )
 
@@ -48,7 +50,7 @@ func (this *Element) Id() string {
 }
 
 // 有効期限を返す。
-func (this *Element) ExpiresIn() time.Time {
+func (this *Element) Expires() time.Time {
 	return this.exp
 }
 
@@ -65,4 +67,41 @@ func (this *Element) TokenTag() string {
 // 転送先 TA の ID を返す。
 func (this *Element) ToTa() string {
 	return this.toTa
+}
+
+//  {
+//      "id": <ID>,
+//      "expires": <有効期限>,
+//      "user_tag": <アカウントタグ>,
+//      "at_tag": <アクセストークンタグ>,
+//      "to_client": <転送先 TA>
+//  }
+func (this *Element) MarshalJSON() (data []byte, err error) {
+	return json.Marshal(map[string]interface{}{
+		"id":        this.id,
+		"expires":   this.exp,
+		"user_tag":  this.acntTag,
+		"at_tag":    this.tokTag,
+		"to_client": this.toTa,
+	})
+}
+
+func (this *Element) UnmarshalJSON(data []byte) error {
+	var buff struct {
+		Id      string    `json:"id"`
+		Exp     time.Time `json:"expires"`
+		AcntTag string    `json:"user_tag"`
+		TokTag  string    `json:"at_tag"`
+		ToTa    string    `json:"to_client"`
+	}
+	if err := json.Unmarshal(data, &buff); err != nil {
+		return erro.Wrap(err)
+	}
+
+	this.id = buff.Id
+	this.exp = buff.Exp
+	this.acntTag = buff.AcntTag
+	this.tokTag = buff.TokTag
+	this.toTa = buff.ToTa
+	return nil
 }

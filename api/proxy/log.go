@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package proxy
 
-import ()
-
-const (
-	contTypeJson = "application/json"
+import (
+	"github.com/realglobe-Inc/go-lib/rglog"
 )
+
+var log = rglog.Logger("github.com/realglobe-Inc/edo-access-proxy/api/proxy")

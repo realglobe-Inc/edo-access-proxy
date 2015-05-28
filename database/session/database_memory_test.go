@@ -12,14 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package token
+package session
 
-import ()
+import (
+	"testing"
+)
 
-// バックエンドのデータを他のプログラムと共有する前提。
-
-// アクセストークンの格納庫。
-type Db interface {
-	// 取得。
-	GetByTag(tag string) (Element, error)
+func TestMemoryDb(t *testing.T) {
+	testDb(t, NewMemoryDb())
 }

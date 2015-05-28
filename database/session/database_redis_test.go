@@ -12,25 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package token
+package session
 
 import (
-	"time"
+	"github.com/realglobe-Inc/edo-lib/test"
+	"testing"
 )
 
-// アクセストークン。
-type Element interface {
-	Id() string
+const (
+	test_tag = "edo-test"
+)
 
-	// バックエンド通知用タグ。
-	Tag() string
+func TestRedisDb(t *testing.T) {
+	red, err := test.NewRedisServer()
+	if err != nil {
+		t.Fatal(err)
+	} else if red == nil {
+		t.SkipNow()
+	}
+	defer red.Close()
 
-	// 有効期限。
-	ExpiresIn() time.Time
-
-	// 発行元 ID プロバイダの ID。
-	IdProvider() string
-
-	// 許可されているスコープ。
-	Scopes() map[string]bool
+	testDb(t, NewRedisDb(red.Pool(), test_tag))
 }
