@@ -123,7 +123,7 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requtil.Request) error {
-	req, err := parseProxyRequest(r)
+	req, err := parseRequest(r)
 	if err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
 	}

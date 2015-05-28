@@ -28,7 +28,7 @@ type request struct {
 	relAcnts []*account
 }
 
-func parseProxyRequest(r *http.Request) (*request, error) {
+func parseRequest(r *http.Request) (*request, error) {
 	toUri := r.Header.Get(tagX_access_proxy_to)
 	if toUri == "" {
 		return nil, erro.New("no destination URI")
