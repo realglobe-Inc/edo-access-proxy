@@ -151,7 +151,7 @@ func (this *buffer) lastRollback() error {
 // また頭から読めるようにする。
 func (this *buffer) rollback() error {
 	if this.last {
-		return nil
+		return erro.New("last stage")
 	}
 	if this.file != nil {
 		if this.fileW != nil {
