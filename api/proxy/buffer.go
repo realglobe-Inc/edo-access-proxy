@@ -122,9 +122,11 @@ func (this *buffer) save(data []byte) (err error) {
 			return nil
 		}
 
-		this.file, err = ioutil.TempFile("", this.filePref)
-		if err != nil {
-			return erro.Wrap(err)
+		if this.file == nil {
+			this.file, err = ioutil.TempFile("", this.filePref)
+			if err != nil {
+				return erro.Wrap(err)
+			}
 		}
 		this.fileW = bufio.NewWriter(this.file)
 	}
