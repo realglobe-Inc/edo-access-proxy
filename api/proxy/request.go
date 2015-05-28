@@ -92,6 +92,6 @@ func (this *request) account() *account {
 }
 
 // 処理の主体でないアカウントの情報を返す。
-func (this *request) relatedAccounts() []*account {
+func (this *request) accounts() []*account {
 	return this.relAcnts
 }

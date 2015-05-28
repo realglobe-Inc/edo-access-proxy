@@ -147,7 +147,7 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 	r.URL = uri
 	r.Host = uri.Host
 
-	if len(req.relatedAccounts()) == 0 {
+	if len(req.accounts()) == 0 {
 		sess, err := this.sessDb.GetByParams(req.account().tag(), req.account().tokenTag(), toTa)
 		if err != nil {
 			return erro.Wrap(err)
@@ -155,7 +155,7 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 			return this.proxyWithSession(w, r, sess, sender)
 		}
 	}
-	return this.proxyThroughIdProvider(w, r, req.account(), req.relatedAccounts(), toTa, sender)
+	return this.proxyThroughIdProvider(w, r, req.account(), req.accounts(), toTa, sender)
 }
 
 // セッションを利用して TA 間連携する。
