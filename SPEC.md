@@ -68,7 +68,7 @@ TA 間連携を代行する。
 * X-Access-Proxy-To
     * 必須。
       転送先 URI。
-* X-Access-Proxy-To-Ta
+* X-Access-Proxy-To-Id
     * 転送先 TA の ID が X-Access-Proxy-To の値からパス以下を除いた部分でない場合は必須。
       転送先 TA の ID。
 
@@ -136,7 +136,7 @@ X-Access-Proxy-Users: eyJhbGciOiJub25lIn0.eyJyZWFkZXIiOnsiYXRfdGFnIjoiMkV5d2gxWj
 
 [TA 間連携プロトコル]を参照のこと。
 
-リクエストから X-Access-Proxy-Users, X-Access-Proxy-To, X-Access-Proxy-To-Ta ヘッダを削除する。
+リクエストから X-Access-Proxy-Users, X-Access-Proxy-To, X-Access-Proxy-To-Id ヘッダを削除する。
 仲介コードは HTTP ヘッダにて付加する。
 
 

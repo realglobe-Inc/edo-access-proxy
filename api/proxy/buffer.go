@@ -24,7 +24,7 @@ import (
 )
 
 // ボディを読みながら保存しとく機構
-type bodyBuffer struct {
+type buffer struct {
 	base io.ReadCloser
 
 	last bool
@@ -33,22 +33,22 @@ type bodyBuffer struct {
 	memW   *bytes.Buffer
 	memR   *bytes.Reader
 
-	filePrefix string
-	file       *os.File
-	fileW      *bufio.Writer
-	fileR      *bufio.Reader
+	filePref string
+	file     *os.File
+	fileW    *bufio.Writer
+	fileR    *bufio.Reader
 }
 
-func newBodyBuffer(base io.ReadCloser, memMax int, filePrefix string) *bodyBuffer {
-	return &bodyBuffer{
-		base:       base,
-		memMax:     memMax,
-		memW:       &bytes.Buffer{},
-		filePrefix: filePrefix,
+func newBuffer(base io.ReadCloser, memMax int, filePref string) *buffer {
+	return &buffer{
+		base:     base,
+		memMax:   memMax,
+		memW:     &bytes.Buffer{},
+		filePref: filePref,
 	}
 }
 
-func (this *bodyBuffer) Read(p []byte) (n int, err error) {
+func (this *buffer) Read(p []byte) (n int, err error) {
 	n = 0
 	if this.memR != nil {
 		m, err := io.ReadFull(this.memR, p[n:])
@@ -107,7 +107,7 @@ func (this *bodyBuffer) Read(p []byte) (n int, err error) {
 }
 
 // 貯める。
-func (this *bodyBuffer) save(data []byte) (err error) {
+func (this *buffer) save(data []byte) (err error) {
 	if this.fileW == nil {
 		// メモリに貯められるだけ貯める。
 		if remSize := this.memMax - this.memW.Len(); remSize > 0 {
@@ -122,9 +122,11 @@ func (this *bodyBuffer) save(data []byte) (err error) {
 			return nil
 		}
 
-		this.file, err = ioutil.TempFile("", this.filePrefix)
-		if err != nil {
-			return erro.Wrap(err)
+		if this.file == nil {
+			this.file, err = ioutil.TempFile("", this.filePref)
+			if err != nil {
+				return erro.Wrap(err)
+			}
 		}
 		this.fileW = bufio.NewWriter(this.file)
 	}
@@ -136,20 +138,20 @@ func (this *bodyBuffer) save(data []byte) (err error) {
 	return nil
 }
 
-func (this *bodyBuffer) Close() error {
+func (this *buffer) Close() error {
 	return nil
 }
 
 // 最後の 1 回。
-func (this *bodyBuffer) lastRollback() error {
+func (this *buffer) lastRollback() error {
 	this.setLast()
 	return this.rollback()
 }
 
 // また頭から読めるようにする。
-func (this *bodyBuffer) rollback() error {
+func (this *buffer) rollback() error {
 	if this.last {
-		return nil
+		return erro.New("last stage")
 	}
 	if this.file != nil {
 		if this.fileW != nil {
@@ -170,12 +172,12 @@ func (this *bodyBuffer) rollback() error {
 }
 
 // もう貯めないようにする。
-func (this *bodyBuffer) setLast() {
+func (this *buffer) setLast() {
 	this.last = true
 }
 
 // 廃棄する。
-func (this *bodyBuffer) dispose() {
+func (this *buffer) dispose() {
 	if this.file != nil {
 		this.file.Close()
 		os.Remove(this.file.Name())

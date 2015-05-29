@@ -22,13 +22,13 @@ import (
 )
 
 type request struct {
-	toUri_   string
-	toTa_    string
-	acnt     *account
-	relAcnts []*account
+	toUri_ string
+	toTa_  string
+	acnt   *account
+	acnts  []*account
 }
 
-func parseProxyRequest(r *http.Request) (*request, error) {
+func parseRequest(r *http.Request) (*request, error) {
 	toUri := r.Header.Get(tagX_access_proxy_to)
 	if toUri == "" {
 		return nil, erro.New("no destination URI")
@@ -48,7 +48,7 @@ func parseProxyRequest(r *http.Request) (*request, error) {
 		return nil, erro.Wrap(err)
 	}
 	var acnt *account
-	var relAcnts []*account
+	var acnts []*account
 	for tag, buff := range buffs {
 		if buff.TokTag != "" {
 			if acnt != nil {
@@ -56,23 +56,23 @@ func parseProxyRequest(r *http.Request) (*request, error) {
 			}
 			acnt = newMainAccount(tag, buff.TokTag)
 		} else {
-			if relAcnts == nil {
-				relAcnts = []*account{}
+			if acnts == nil {
+				acnts = []*account{}
 			} else if buff.Iss == "" {
 				return nil, erro.New("no ID provider ID")
 			} else if buff.Sub == "" {
 				return nil, erro.New("no account ID")
 			}
-			relAcnts = append(relAcnts, newSubAccount(tag, buff.Iss, buff.Sub))
+			acnts = append(acnts, newSubAccount(tag, buff.Iss, buff.Sub))
 		}
 	}
 	r.Header.Del(tagX_access_proxy_to)
 	r.Header.Del(tagX_access_proxy_users)
 	return &request{
-		toUri_:   toUri,
-		toTa_:    r.Header.Get(tagX_access_proxy_to_id),
-		acnt:     acnt,
-		relAcnts: relAcnts,
+		toUri_: toUri,
+		toTa_:  r.Header.Get(tagX_access_proxy_to_id),
+		acnt:   acnt,
+		acnts:  acnts,
 	}, nil
 }
 
@@ -92,6 +92,6 @@ func (this *request) account() *account {
 }
 
 // 処理の主体でないアカウントの情報を返す。
-func (this *request) relatedAccounts() []*account {
-	return this.relAcnts
+func (this *request) accounts() []*account {
+	return this.acnts
 }

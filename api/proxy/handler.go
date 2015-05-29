@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// TA 間連携要請代行エンドポイント。
 package proxy
 
 import (
@@ -123,7 +124,7 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requtil.Request) error {
-	req, err := parseProxyRequest(r)
+	req, err := parseRequest(r)
 	if err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
 	}
@@ -147,7 +148,7 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 	r.URL = uri
 	r.Host = uri.Host
 
-	if len(req.relatedAccounts()) == 0 {
+	if len(req.accounts()) == 0 {
 		sess, err := this.sessDb.GetByParams(req.account().tag(), req.account().tokenTag(), toTa)
 		if err != nil {
 			return erro.Wrap(err)
@@ -155,14 +156,14 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 			return this.proxyWithSession(w, r, sess, sender)
 		}
 	}
-	return this.proxyThroughIdProvider(w, r, req.account(), req.relatedAccounts(), toTa, sender)
+	return this.proxyThroughIdProvider(w, r, req.account(), req.accounts(), toTa, sender)
 }
 
 // セッションを利用して TA 間連携する。
 func (this *handler) proxyWithSession(w http.ResponseWriter, r *http.Request, sess *session.Element, sender *requtil.Request) (err error) {
-	var buff *bodyBuffer
+	var buff *buffer
 	if r.Body != nil {
-		buff = newBodyBuffer(r.Body, this.fileThres, tempPrefix)
+		buff = newBuffer(r.Body, this.fileThres, tempPrefix)
 		defer buff.dispose()
 		r.Body = buff
 	}
