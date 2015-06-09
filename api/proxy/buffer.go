@@ -108,6 +108,9 @@ func (this *buffer) Read(p []byte) (n int, err error) {
 
 // 貯める。
 func (this *buffer) save(data []byte) (err error) {
+	if this.last {
+		return nil
+	}
 	if this.fileW == nil {
 		// メモリに貯められるだけ貯める。
 		if remSize := this.memMax - this.memW.Len(); remSize > 0 {
@@ -144,8 +147,11 @@ func (this *buffer) Close() error {
 
 // 最後の 1 回。
 func (this *buffer) lastRollback() error {
+	if err := this.rollback(); err != nil {
+		return erro.Wrap(err)
+	}
 	this.setLast()
-	return this.rollback()
+	return nil
 }
 
 // また頭から読めるようにする。

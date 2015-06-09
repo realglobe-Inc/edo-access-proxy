@@ -34,15 +34,15 @@ func TestMainAccount(t *testing.T) {
 }
 
 func TestSubAccount(t *testing.T) {
-	acnt := newSubAccount(test_acntTag, test_idp, test_acntId)
+	acnt := newSubAccount(test_acntTag, test_idpId, test_acntId)
 	if acnt.tag() != test_acntTag {
 		t.Error(acnt.tag())
 		t.Fatal(test_acntTag)
 	} else if acnt.tokenTag() != "" {
 		t.Fatal(acnt.tokenTag())
-	} else if acnt.idProvider() != test_idp {
+	} else if acnt.idProvider() != test_idpId {
 		t.Error(acnt.idProvider())
-		t.Fatal(test_idp)
+		t.Fatal(test_idpId)
 	} else if acnt.id() != test_acntId {
 		t.Error(acnt.id())
 		t.Fatal(test_acntId)

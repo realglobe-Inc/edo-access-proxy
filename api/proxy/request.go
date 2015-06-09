@@ -66,6 +66,9 @@ func parseRequest(r *http.Request) (*request, error) {
 			acnts = append(acnts, newSubAccount(tag, buff.Iss, buff.Sub))
 		}
 	}
+	if acnt == nil {
+		return nil, erro.New("no main account")
+	}
 	r.Header.Del(tagX_access_proxy_to)
 	r.Header.Del(tagX_access_proxy_users)
 	return &request{

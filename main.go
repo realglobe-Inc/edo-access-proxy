@@ -151,7 +151,7 @@ func serve(param *parameters) error {
 
 	idGen := rand.New(time.Minute)
 
-	var tr *http.Transport
+	var tr http.RoundTripper
 	if param.noVeri {
 		// http.DefaultTransport を参考にした。
 		tr = &http.Transport{
