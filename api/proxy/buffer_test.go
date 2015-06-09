@@ -68,3 +68,35 @@ func TestBuffer(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestBufferLast(t *testing.T) {
+	data := []byte(prand.New(time.Hour).String(100))
+	base := ioutil.NopCloser(bytes.NewReader(data))
+	buff := newBuffer(base, len(data)/2, test_pref)
+	defer buff.dispose()
+
+	data2 := make([]byte, len(data)/2)
+	if _, err := io.ReadFull(buff, data2); err != nil {
+		t.Fatal(err)
+	} else if !bytes.Equal(data2, data[:len(data2)]) {
+		t.Error(string(data2))
+		t.Fatal(string(data[:len(data2)]))
+	}
+	buff.lastRollback()
+
+	data3 := make([]byte, len(data))
+	if _, err := io.ReadFull(buff, data3); err != nil {
+		t.Fatal(err)
+	} else if !bytes.Equal(data3, data) {
+		t.Error(string(data3))
+		t.Fatal(string(data))
+	}
+
+	if _, err := buff.Read(make([]byte, 1)); err != io.EOF {
+		t.Fatal(err)
+	}
+
+	if buff.file != nil {
+		t.Fatal("file opened")
+	}
+}
