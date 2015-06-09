@@ -390,26 +390,11 @@ func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa str
 	params[tagClient_assertion_type] = cliAssTypeJwt_bearer
 
 	// client_assertion
-	jt := jwt.New()
-	jt.SetHeader(tagAlg, this.sigAlg)
-	if this.sigKid != "" {
-		jt.SetHeader(tagKid, this.sigKid)
-	}
-	jt.SetClaim(tagIss, this.selfId)
-	jt.SetClaim(tagSub, this.selfId)
-	jt.SetClaim(tagAud, idp.CoopFromUri())
-	jt.SetClaim(tagJti, this.idGen.String(this.jtiLen))
-	now := time.Now()
-	jt.SetClaim(tagExp, now.Add(this.jtiExpIn).Unix())
-	jt.SetClaim(tagIat, now.Unix())
-	if err := jt.Sign(keys); err != nil {
-		return "", "", erro.Wrap(err)
-	}
-	assData, err := jt.Encode()
+	ass, err := this.makeAssertion(idp, keys)
 	if err != nil {
 		return "", "", erro.Wrap(err)
 	}
-	params[tagClient_assertion] = string(assData)
+	params[tagClient_assertion] = string(ass)
 
 	data, err := json.Marshal(params)
 	if err != nil {
@@ -452,6 +437,31 @@ func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa str
 func (this *handler) getSubCoopCode(idp idpdb.Element, keys []jwk.Key, toTa string,
 	tagToRelAcnt map[string]*account, sender *requtil.Request) (codTok string, err error) {
 	panic("not yet implemented")
+}
+
+// TA 認証用署名をつくる。
+func (this *handler) makeAssertion(idp idpdb.Element, keys []jwk.Key) ([]byte, error) {
+	ass := jwt.New()
+	ass.SetHeader(tagAlg, this.sigAlg)
+	if this.sigKid != "" {
+		ass.SetHeader(tagKid, this.sigKid)
+	}
+	ass.SetClaim(tagIss, this.selfId)
+	ass.SetClaim(tagSub, this.selfId)
+	ass.SetClaim(tagAud, idp.CoopFromUri())
+	ass.SetClaim(tagJti, this.idGen.String(this.jtiLen))
+	now := time.Now()
+	ass.SetClaim(tagExp, now.Add(this.jtiExpIn).Unix())
+	ass.SetClaim(tagIat, now.Unix())
+	if err := ass.Sign(keys); err != nil {
+		return nil, erro.Wrap(err)
+	}
+	data, err := ass.Encode()
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+
+	return data, nil
 }
 
 func (this *handler) httpClient() *http.Client {
