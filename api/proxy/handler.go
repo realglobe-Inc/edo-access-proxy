@@ -57,7 +57,7 @@ type handler struct {
 	sessDb session.Db
 
 	idGen rand.Generator
-	tr    *http.Transport
+	tr    http.RoundTripper
 }
 
 func New(
@@ -74,7 +74,7 @@ func New(
 	tokDb token.Db,
 	sessDb session.Db,
 	idGen rand.Generator,
-	tr *http.Transport,
+	tr http.RoundTripper,
 ) http.Handler {
 	return &handler{
 		stopper:   stopper,
