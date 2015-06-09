@@ -320,6 +320,7 @@ func getIdpAndAccountMaps(idpDb idpdb.Db, mainIdpId string, acnts []*account) (i
 	return idps, tagToAcnt, idpToTagToAcnt, nil
 }
 
+// 主体の属す ID プロバイダから仲介コードを取得する。
 func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa string,
 	tok *token.Element, acnt *account, tagToAcnt map[string]*account, idpToTagToAcnt map[string]map[string]*account,
 	sender *requtil.Request) (codTok, ref string, err error) {
