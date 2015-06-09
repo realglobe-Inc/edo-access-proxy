@@ -144,8 +144,11 @@ func (this *buffer) Close() error {
 
 // 最後の 1 回。
 func (this *buffer) lastRollback() error {
+	if err := this.rollback(); err != nil {
+		return erro.Wrap(err)
+	}
 	this.setLast()
-	return this.rollback()
+	return nil
 }
 
 // また頭から読めるようにする。
