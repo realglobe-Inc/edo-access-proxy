@@ -45,6 +45,7 @@ const (
 	tagContent_type            = "Content-Type"
 	tagCookie                  = "Cookie"
 	tagEdo_cooperation         = "Edo-Cooperation"
+	tagX_access_proxy_error    = "X-Access-Proxy-Error"
 	tagX_access_proxy_to       = "X-Access-Proxy-To"
 	tagX_access_proxy_to_id    = "X-Access-Proxy-To-Id"
 	tagX_access_proxy_users    = "X-Access-Proxy-Users"

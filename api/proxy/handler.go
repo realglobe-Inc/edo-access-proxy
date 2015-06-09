@@ -18,6 +18,7 @@ package proxy
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/realglobe-Inc/edo-access-proxy/database/session"
 	"github.com/realglobe-Inc/edo-auth/database/token"
 	keydb "github.com/realglobe-Inc/edo-id-provider/database/key"
@@ -99,6 +100,7 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// panic 対策。
 	defer func() {
 		if rcv := recover(); rcv != nil {
+			w.Header().Set(tagX_access_proxy_error, fmt.Sprint(rcv))
 			idperr.RespondApiError(w, r, erro.New(rcv), sender)
 			return
 		}
@@ -118,6 +120,7 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer log.Info(sender, ": Handled proxy request")
 
 	if err := this.serve(w, r, sender); err != nil {
+		w.Header().Set(tagX_access_proxy_error, erro.Unwrap(err).Error())
 		idperr.RespondApiError(w, r, erro.Wrap(err), sender)
 		return
 	}
