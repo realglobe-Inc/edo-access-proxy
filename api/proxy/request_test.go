@@ -27,25 +27,26 @@ func TestRequest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r.Header.Set("X-Access-Proxy-To", test_ta+test_path)
-	r.Header.Set("X-Access-Proxy-To-Id", test_ta)
+	r.Header.Set("X-Access-Proxy-To", test_toTaId+test_path)
+	r.Header.Set("X-Access-Proxy-To-Id", test_toTaId)
 	r.Header.Set("X-Access-Proxy-Users",
 		base64url.EncodeToString([]byte(`{"alg":"none"}`))+"."+
-			base64url.EncodeToString([]byte(`{"`+test_acntTag+`":{"at_tag":"`+test_tokTag+`"},"`+test_acntTag2+`":{"iss":"`+test_idp+`","sub":"`+test_acntId2+`"}}`))+".")
+			base64url.EncodeToString([]byte(`{"`+test_acntTag+`":{"at_tag":"`+test_tokTag+`"},"`+
+				test_subAcnt1Tag+`":{"iss":"`+test_idpId+`","sub":"`+test_subAcnt1Id+`"}}`))+".")
 
 	req, err := parseRequest(r)
 	if err != nil {
 		t.Fatal(err)
-	} else if req.toUri() != test_ta+test_path {
+	} else if req.toUri() != test_toTaId+test_path {
 		t.Error(req.toUri())
-		t.Fatal(test_ta + test_path)
-	} else if req.toTa() != test_ta {
+		t.Fatal(test_toTaId + test_path)
+	} else if req.toTa() != test_toTaId {
 		t.Error(req.toTa())
-		t.Fatal(test_ta)
+		t.Fatal(test_toTaId)
 	} else if acnt := newMainAccount(test_acntTag, test_tokTag); !reflect.DeepEqual(req.account(), acnt) {
 		t.Error(req.account())
 		t.Fatal(acnt)
-	} else if acnts := []*account{newSubAccount(test_acntTag2, test_idp, test_acntId2)}; !reflect.DeepEqual(req.accounts(), acnts) {
+	} else if acnts := []*account{newSubAccount(test_subAcnt1Tag, test_idpId, test_subAcnt1Id)}; !reflect.DeepEqual(req.accounts(), acnts) {
 		t.Error(fmt.Sprintf("%#v", req.accounts()))
 		t.Fatal(fmt.Sprintf("%#v", acnts))
 	}

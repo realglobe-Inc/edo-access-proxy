@@ -43,6 +43,7 @@ func TestBufferMemory(t *testing.T) {
 	}
 }
 
+// ファイルもテスト。
 func TestBuffer(t *testing.T) {
 	data := []byte(prand.New(time.Hour).String(100))
 	base := ioutil.NopCloser(bytes.NewReader(data))
