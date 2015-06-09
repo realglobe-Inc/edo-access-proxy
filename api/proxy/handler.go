@@ -402,6 +402,9 @@ func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa str
 	}
 
 	r, err := http.NewRequest("POST", idp.CoopFromUri(), bytes.NewReader(data))
+	if err != nil {
+		return "", "", erro.Wrap(err)
+	}
 	r.Header.Set(tagContent_type, contTypeJson)
 	log.Debug(sender, ": Made main cooperation-from request")
 
