@@ -22,11 +22,10 @@ import (
 	"github.com/realglobe-Inc/edo-access-proxy/database/session"
 	"github.com/realglobe-Inc/edo-auth/database/token"
 	keydb "github.com/realglobe-Inc/edo-id-provider/database/key"
+	hashutil "github.com/realglobe-Inc/edo-id-provider/hash"
 	idpdb "github.com/realglobe-Inc/edo-idp-selector/database/idp"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	requtil "github.com/realglobe-Inc/edo-idp-selector/request"
-	"github.com/realglobe-Inc/edo-lib/base64url"
-	edohash "github.com/realglobe-Inc/edo-lib/hash"
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
@@ -342,7 +341,7 @@ func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa str
 	}
 
 	// hash_alg
-	hash, err := edohash.HashFunction(this.hashAlg)
+	hash, err := hashutil.HashFunction(this.hashAlg)
 	if err != nil {
 		return "", "", erro.Wrap(err)
 	}
@@ -357,11 +356,7 @@ func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa str
 		for idpId, tagToRelAcnt := range idpToTagToRelAcnt {
 			for tag, relAcnt := range tagToRelAcnt {
 				h.Reset()
-				h.Write([]byte(idpId))
-				h.Write([]byte{0})
-				h.Write([]byte(relAcnt.id()))
-				sum := h.Sum(nil)
-				tagToRelAcntHash[tag] = base64url.EncodeToString(sum[:len(sum)/2])
+				tagToRelAcntHash[tag] = hashutil.Hashing(h, []byte(idpId), []byte{0}, []byte(relAcnt.id()))
 			}
 			idps = append(idps, idpId)
 		}
