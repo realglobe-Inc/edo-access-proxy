@@ -207,7 +207,7 @@ func (this *handler) proxyWithSession(w http.ResponseWriter, r *http.Request, se
 }
 
 // ID プロバイダを介して TA 間連携する。
-func (this *handler) proxyThroughIdProvider(w http.ResponseWriter, r *http.Request, acnt *account, relAcnts []*account, toTa string, sender *requtil.Request) error {
+func (this *handler) proxyThroughIdProvider(w http.ResponseWriter, r *http.Request, acnt *account, acnts []*account, toTa string, sender *requtil.Request) error {
 	tok, err := this.tokDb.GetByTag(acnt.tokenTag())
 	if err != nil {
 		return erro.Wrap(err)
@@ -219,7 +219,7 @@ func (this *handler) proxyThroughIdProvider(w http.ResponseWriter, r *http.Reque
 
 	log.Debug(sender, ": Access token "+logutil.Mosaic(tok.Tag())+" is exist")
 
-	idps, tagToAcnt, idpToTagToAcnt, err := getIdpAndAccountMaps(this.idpDb, tok.IdProvider(), relAcnts)
+	idps, tagToAcnt, idpToTagToAcnt, err := getIdpAndAccountMaps(this.idpDb, tok.IdProvider(), acnts)
 	if err != nil {
 		return erro.Wrap(err)
 	}
@@ -231,7 +231,7 @@ func (this *handler) proxyThroughIdProvider(w http.ResponseWriter, r *http.Reque
 		return erro.Wrap(err)
 	}
 
-	codTok, ref, err := this.getMainCoopCode(idps[tok.IdProvider()], keys, toTa, tok, acnt, tagToAcnt, idpToTagToRelAcnt, sender)
+	codTok, ref, err := this.getMainCoopCode(idps[tok.IdProvider()], keys, toTa, tok, acnt, tagToAcnt, idpToTagToAcnt, sender)
 	if err != nil {
 		return erro.Wrap(err)
 	}
@@ -239,8 +239,8 @@ func (this *handler) proxyThroughIdProvider(w http.ResponseWriter, r *http.Reque
 	log.Debug(sender, ": Got main cooperation code from "+tok.IdProvider())
 
 	codToks := []string{codTok}
-	for idpId, tagToRelAcnt := range idpToTagToRelAcnt {
-		codTok, err := this.getSubCoopCode(idps[idpId], keys, ref, tagToRelAcnt, sender)
+	for idpId, subTagToAcnt := range idpToTagToAcnt {
+		codTok, err := this.getSubCoopCode(idps[idpId], keys, ref, subTagToAcnt, sender)
 		if err != nil {
 			return erro.Wrap(err)
 		}
@@ -321,7 +321,7 @@ func getIdpAndAccountMaps(idpDb idpdb.Db, mainIdpId string, acnts []*account) (i
 }
 
 func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa string,
-	tok *token.Element, acnt *account, tagToAcnt map[string]*account, idpToTagToRelAcnt map[string]map[string]*account,
+	tok *token.Element, acnt *account, tagToAcnt map[string]*account, idpToTagToAcnt map[string]map[string]*account,
 	sender *requtil.Request) (codTok, ref string, err error) {
 
 	params := map[string]interface{}{}
@@ -329,7 +329,7 @@ func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa str
 	// response_type
 	reqRef := false
 	respType := tagCode_token
-	if len(idpToTagToRelAcnt) > 0 {
+	if len(idpToTagToAcnt) > 0 {
 		reqRef = true
 		respType += " " + tagReferral
 	}
@@ -374,15 +374,15 @@ func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa str
 	if reqRef {
 		h := hash.New()
 		idps := []string{}
-		tagToRelAcntHash := map[string]string{}
-		for idpId, tagToRelAcnt := range idpToTagToRelAcnt {
-			for tag, relAcnt := range tagToRelAcnt {
+		tagToAcntHash := map[string]string{}
+		for idpId, tagToAcnt := range idpToTagToAcnt {
+			for tag, subAcnt := range tagToAcnt {
 				h.Reset()
-				tagToRelAcntHash[tag] = hashutil.Hashing(h, []byte(idpId), []byte{0}, []byte(relAcnt.id()))
+				tagToAcntHash[tag] = hashutil.Hashing(h, []byte(idpId), []byte{0}, []byte(subAcnt.id()))
 			}
 			idps = append(idps, idpId)
 		}
-		params[tagRelated_users] = tagToRelAcntHash
+		params[tagRelated_users] = tagToAcntHash
 		params[tagRelated_issuers] = idps
 	}
 
