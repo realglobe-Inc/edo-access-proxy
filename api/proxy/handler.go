@@ -438,9 +438,75 @@ func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa str
 	return buff.CodTok, buff.Ref, nil
 }
 
-func (this *handler) getSubCoopCode(idp idpdb.Element, keys []jwk.Key, toTa string,
-	tagToRelAcnt map[string]*account, sender *requtil.Request) (codTok string, err error) {
-	panic("not yet implemented")
+// 主体の属さない ID プロバイダから仲介コードを取得する。
+func (this *handler) getSubCoopCode(idp idpdb.Element, keys []jwk.Key, ref string,
+	tagToAcnt map[string]*account, sender *requtil.Request) (codTok string, err error) {
+
+	// response_type
+	// grant_type
+	params := map[string]interface{}{
+		tagResponse_type: tagCode_token,
+		tagGrant_type:    tagReferral,
+	}
+
+	// referral
+	params[tagReferral] = ref
+
+	// users
+	if len(tagToAcnt) > 0 {
+		tagToAcntId := map[string]string{}
+		for tag, acnt := range tagToAcnt {
+			tagToAcntId[tag] = acnt.id()
+		}
+		params[tagUsers] = tagToAcntId
+	}
+
+	// client_assertion_type
+	params[tagClient_assertion_type] = cliAssTypeJwt_bearer
+
+	// client_assertion
+	ass, err := this.makeAssertion(idp, keys)
+	if err != nil {
+		return "", erro.Wrap(err)
+	}
+	params[tagClient_assertion] = string(ass)
+
+	data, err := json.Marshal(params)
+	if err != nil {
+		return "", erro.Wrap(err)
+	}
+
+	r, err := http.NewRequest("POST", idp.CoopFromUri(), bytes.NewReader(data))
+	if err != nil {
+		return "", erro.Wrap(err)
+	}
+	r.Header.Set(tagContent_type, contTypeJson)
+	log.Debug(sender, ": Made sub cooperation-from request")
+
+	server.LogRequest(level.DEBUG, r, true)
+	resp, err := this.httpClient().Do(r)
+	if err != nil {
+		return "", erro.Wrap(err)
+	}
+	defer resp.Body.Close()
+	server.LogResponse(level.DEBUG, resp, true)
+
+	if resp.StatusCode != http.StatusOK {
+		return "", erro.New("invalid state ", resp.StatusCode)
+	} else if contType := resp.Header.Get(tagContent_type); contType != contTypeJson {
+		return "", erro.New("invalid content type " + contType)
+	}
+
+	var buff struct {
+		CodTok string `json:"code_token"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&buff); err != nil {
+		return "", erro.Wrap(err)
+	} else if buff.CodTok == "" {
+		return "", erro.New("cannot get code token")
+	}
+
+	return buff.CodTok, nil
 }
 
 // TA 認証用署名をつくる。
