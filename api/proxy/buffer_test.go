@@ -41,6 +41,9 @@ func TestBufferMemory(t *testing.T) {
 			t.Fatal(string(data[:len(data2)]))
 		}
 	}
+	if _, err := buff.Read(make([]byte, 1)); err != io.EOF {
+		t.Fatal(err)
+	}
 }
 
 // ファイルもテスト。
@@ -60,5 +63,8 @@ func TestBuffer(t *testing.T) {
 			t.Error(string(data2))
 			t.Fatal(string(data[:len(data2)]))
 		}
+	}
+	if _, err := buff.Read(make([]byte, 1)); err != io.EOF {
+		t.Fatal(err)
 	}
 }
