@@ -219,38 +219,12 @@ func (this *handler) proxyThroughIdProvider(w http.ResponseWriter, r *http.Reque
 
 	log.Debug(sender, ": Access token "+logutil.Mosaic(tok.Tag())+" is exist")
 
-	idps := map[string]idpdb.Element{}
-	idp, err := this.idpDb.Get(tok.IdProvider())
+	idps, tagToAcnt, idpToTagToAcnt, err := getIdpAndAccountMaps(this.idpDb, tok.IdProvider(), relAcnts)
 	if err != nil {
 		return erro.Wrap(err)
-	} else if idp == nil {
-		return erro.New("ID provider " + tok.IdProvider() + " is not exist")
 	}
-	idps[idp.Id()] = idp
-	log.Debug(sender, ": ID provider "+idp.Id()+" is exist")
 
-	tagToAcnt := map[string]*account{}
-	idpToTagToRelAcnt := map[string]map[string]*account{}
-	for _, relAcnt := range relAcnts {
-		if idps[relAcnt.idProvider()] == nil {
-			idp, err := this.idpDb.Get(relAcnt.idProvider())
-			if err != nil {
-				return erro.Wrap(err)
-			}
-			idps[idp.Id()] = idp
-			log.Debug(sender, ": ID provider "+idp.Id()+" is exist")
-		}
-
-		if relAcnt.idProvider() == tok.IdProvider() {
-			tagToAcnt[relAcnt.tag()] = relAcnt
-		} else {
-			tagToRelAcnt := idpToTagToRelAcnt[relAcnt.idProvider()]
-			if tagToRelAcnt == nil {
-				tagToRelAcnt = map[string]*account{}
-				idpToTagToRelAcnt[relAcnt.idProvider()] = tagToRelAcnt
-			}
-		}
-	}
+	log.Debug(sender, ": ID provider checks are passed")
 
 	keys, err := this.keyDb.Get()
 	if err != nil {
@@ -296,6 +270,54 @@ func (this *handler) proxyThroughIdProvider(w http.ResponseWriter, r *http.Reque
 	server.LogResponse(level.DEBUG, resp, true)
 
 	return copyResponse(w, resp)
+}
+
+// 各種マップを作成する。
+// idps: ID プロバイダの ID から ID プロバイダ情報へのマップ。
+// tagToAcnt: 主体の ID プロバイダに属すアカウントの、アカウントタグからアカウント情報へのマップ。
+// idpToTagToAcnt: 主体の属さない ID プロバイダとそこに属すアカウントの、
+// ID プロバイダの ID -> アカウントタグ -> アカウント情報のマップ。
+func getIdpAndAccountMaps(idpDb idpdb.Db, mainIdpId string, acnts []*account) (idps map[string]idpdb.Element, tagToAcnt map[string]*account, idpToTagToAcnt map[string]map[string]*account, err error) {
+	idps = map[string]idpdb.Element{}
+	{
+		idp, err := idpDb.Get(mainIdpId)
+		if err != nil {
+			return nil, nil, nil, erro.Wrap(err)
+		} else if idp == nil {
+			return nil, nil, nil, erro.New("main ID provider " + mainIdpId + " is not exist")
+		}
+		idps[idp.Id()] = idp
+	}
+
+	tagToAcnt = map[string]*account{}
+	for _, acnt := range acnts {
+		if idps[acnt.idProvider()] == nil {
+			idp, err := idpDb.Get(acnt.idProvider())
+			if err != nil {
+				return nil, nil, nil, erro.Wrap(err)
+			} else if idp == nil {
+				return nil, nil, nil, erro.New("sub ID provider " + acnt.idProvider() + " is not exist")
+			}
+			idps[idp.Id()] = idp
+		}
+
+		if acnt.idProvider() == mainIdpId {
+			tagToAcnt[acnt.tag()] = acnt
+			continue
+		}
+
+		if idpToTagToAcnt == nil {
+			idpToTagToAcnt = map[string]map[string]*account{}
+		}
+		subTagToAcnt := idpToTagToAcnt[acnt.idProvider()]
+		if subTagToAcnt == nil {
+			subTagToAcnt = map[string]*account{}
+			idpToTagToAcnt[acnt.idProvider()] = subTagToAcnt
+		}
+		subTagToAcnt[acnt.tag()] = acnt
+	}
+
+	return idps, tagToAcnt, idpToTagToAcnt, nil
 }
 
 func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa string,
