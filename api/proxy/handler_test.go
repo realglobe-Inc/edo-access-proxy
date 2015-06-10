@@ -746,10 +746,10 @@ func TestRetry(t *testing.T) {
 
 // プロキシ先がおかしかったら拒否できることの検査。
 func TestDenyInvalidTo(t *testing.T) {
-	////////////////////////////////
-	logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
-	////////////////////////////////
+	// ////////////////////////////////
+	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
+	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// ////////////////////////////////
 
 	idpServ, err := newTestIdProvider([]jwk.Key{test_idpKey})
 	if err != nil {

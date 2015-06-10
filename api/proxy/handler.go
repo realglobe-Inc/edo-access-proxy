@@ -22,11 +22,10 @@ import (
 	"github.com/realglobe-Inc/edo-access-proxy/database/session"
 	"github.com/realglobe-Inc/edo-auth/database/token"
 	keydb "github.com/realglobe-Inc/edo-id-provider/database/key"
+	hashutil "github.com/realglobe-Inc/edo-id-provider/hash"
 	idpdb "github.com/realglobe-Inc/edo-idp-selector/database/idp"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	requtil "github.com/realglobe-Inc/edo-idp-selector/request"
-	"github.com/realglobe-Inc/edo-lib/base64url"
-	edohash "github.com/realglobe-Inc/edo-lib/hash"
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
@@ -101,7 +100,7 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if rcv := recover(); rcv != nil {
 			w.Header().Set(tagX_access_proxy_error, fmt.Sprint(rcv))
-			idperr.RespondApiError(w, r, erro.New(rcv), sender)
+			idperr.RespondJson(w, r, erro.New(rcv), sender)
 			return
 		}
 	}()
@@ -121,7 +120,7 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if err := this.serve(w, r, sender); err != nil {
 		w.Header().Set(tagX_access_proxy_error, erro.Unwrap(err).Error())
-		idperr.RespondApiError(w, r, erro.Wrap(err), sender)
+		idperr.RespondJson(w, r, erro.Wrap(err), sender)
 		return
 	}
 }
@@ -208,7 +207,7 @@ func (this *handler) proxyWithSession(w http.ResponseWriter, r *http.Request, se
 }
 
 // ID プロバイダを介して TA 間連携する。
-func (this *handler) proxyThroughIdProvider(w http.ResponseWriter, r *http.Request, acnt *account, relAcnts []*account, toTa string, sender *requtil.Request) error {
+func (this *handler) proxyThroughIdProvider(w http.ResponseWriter, r *http.Request, acnt *account, acnts []*account, toTa string, sender *requtil.Request) error {
 	tok, err := this.tokDb.GetByTag(acnt.tokenTag())
 	if err != nil {
 		return erro.Wrap(err)
@@ -220,45 +219,19 @@ func (this *handler) proxyThroughIdProvider(w http.ResponseWriter, r *http.Reque
 
 	log.Debug(sender, ": Access token "+logutil.Mosaic(tok.Tag())+" is exist")
 
-	idps := map[string]idpdb.Element{}
-	idp, err := this.idpDb.Get(tok.IdProvider())
+	idps, tagToAcnt, idpToTagToAcnt, err := getIdpAndAccountMaps(this.idpDb, tok.IdProvider(), acnts)
 	if err != nil {
 		return erro.Wrap(err)
-	} else if idp == nil {
-		return erro.New("ID provider " + tok.IdProvider() + " is not exist")
 	}
-	idps[idp.Id()] = idp
-	log.Debug(sender, ": ID provider "+idp.Id()+" is exist")
 
-	tagToAcnt := map[string]*account{}
-	idpToTagToRelAcnt := map[string]map[string]*account{}
-	for _, relAcnt := range relAcnts {
-		if idps[relAcnt.idProvider()] == nil {
-			idp, err := this.idpDb.Get(relAcnt.idProvider())
-			if err != nil {
-				return erro.Wrap(err)
-			}
-			idps[idp.Id()] = idp
-			log.Debug(sender, ": ID provider "+idp.Id()+" is exist")
-		}
-
-		if relAcnt.idProvider() == tok.IdProvider() {
-			tagToAcnt[relAcnt.tag()] = relAcnt
-		} else {
-			tagToRelAcnt := idpToTagToRelAcnt[relAcnt.idProvider()]
-			if tagToRelAcnt == nil {
-				tagToRelAcnt = map[string]*account{}
-				idpToTagToRelAcnt[relAcnt.idProvider()] = tagToRelAcnt
-			}
-		}
-	}
+	log.Debug(sender, ": ID provider checks are passed")
 
 	keys, err := this.keyDb.Get()
 	if err != nil {
 		return erro.Wrap(err)
 	}
 
-	codTok, ref, err := this.getMainCoopCode(idps[tok.IdProvider()], keys, toTa, tok, acnt, tagToAcnt, idpToTagToRelAcnt, sender)
+	codTok, ref, err := this.getMainCoopCode(idps[tok.IdProvider()], keys, toTa, tok, acnt, tagToAcnt, idpToTagToAcnt, sender)
 	if err != nil {
 		return erro.Wrap(err)
 	}
@@ -266,8 +239,8 @@ func (this *handler) proxyThroughIdProvider(w http.ResponseWriter, r *http.Reque
 	log.Debug(sender, ": Got main cooperation code from "+tok.IdProvider())
 
 	codToks := []string{codTok}
-	for idpId, tagToRelAcnt := range idpToTagToRelAcnt {
-		codTok, err := this.getSubCoopCode(idps[idpId], keys, ref, tagToRelAcnt, sender)
+	for idpId, subTagToAcnt := range idpToTagToAcnt {
+		codTok, err := this.getSubCoopCode(idps[idpId], keys, ref, subTagToAcnt, sender)
 		if err != nil {
 			return erro.Wrap(err)
 		}
@@ -299,8 +272,57 @@ func (this *handler) proxyThroughIdProvider(w http.ResponseWriter, r *http.Reque
 	return copyResponse(w, resp)
 }
 
+// 各種マップを作成する。
+// idps: ID プロバイダの ID から ID プロバイダ情報へのマップ。
+// tagToAcnt: 主体の ID プロバイダに属すアカウントの、アカウントタグからアカウント情報へのマップ。
+// idpToTagToAcnt: 主体の属さない ID プロバイダとそこに属すアカウントの、
+// ID プロバイダの ID -> アカウントタグ -> アカウント情報のマップ。
+func getIdpAndAccountMaps(idpDb idpdb.Db, mainIdpId string, acnts []*account) (idps map[string]idpdb.Element, tagToAcnt map[string]*account, idpToTagToAcnt map[string]map[string]*account, err error) {
+	idps = map[string]idpdb.Element{}
+	{
+		idp, err := idpDb.Get(mainIdpId)
+		if err != nil {
+			return nil, nil, nil, erro.Wrap(err)
+		} else if idp == nil {
+			return nil, nil, nil, erro.New("main ID provider " + mainIdpId + " is not exist")
+		}
+		idps[idp.Id()] = idp
+	}
+
+	tagToAcnt = map[string]*account{}
+	for _, acnt := range acnts {
+		if idps[acnt.idProvider()] == nil {
+			idp, err := idpDb.Get(acnt.idProvider())
+			if err != nil {
+				return nil, nil, nil, erro.Wrap(err)
+			} else if idp == nil {
+				return nil, nil, nil, erro.New("sub ID provider " + acnt.idProvider() + " is not exist")
+			}
+			idps[idp.Id()] = idp
+		}
+
+		if acnt.idProvider() == mainIdpId {
+			tagToAcnt[acnt.tag()] = acnt
+			continue
+		}
+
+		if idpToTagToAcnt == nil {
+			idpToTagToAcnt = map[string]map[string]*account{}
+		}
+		subTagToAcnt := idpToTagToAcnt[acnt.idProvider()]
+		if subTagToAcnt == nil {
+			subTagToAcnt = map[string]*account{}
+			idpToTagToAcnt[acnt.idProvider()] = subTagToAcnt
+		}
+		subTagToAcnt[acnt.tag()] = acnt
+	}
+
+	return idps, tagToAcnt, idpToTagToAcnt, nil
+}
+
+// 主体の属す ID プロバイダから仲介コードを取得する。
 func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa string,
-	tok *token.Element, acnt *account, tagToAcnt map[string]*account, idpToTagToRelAcnt map[string]map[string]*account,
+	tok *token.Element, acnt *account, tagToAcnt map[string]*account, idpToTagToAcnt map[string]map[string]*account,
 	sender *requtil.Request) (codTok, ref string, err error) {
 
 	params := map[string]interface{}{}
@@ -308,7 +330,7 @@ func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa str
 	// response_type
 	reqRef := false
 	respType := tagCode_token
-	if len(idpToTagToRelAcnt) > 0 {
+	if len(idpToTagToAcnt) > 0 {
 		reqRef = true
 		respType += " " + tagReferral
 	}
@@ -342,7 +364,7 @@ func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa str
 	}
 
 	// hash_alg
-	hash, err := edohash.HashFunction(this.hashAlg)
+	hash, err := hashutil.HashFunction(this.hashAlg)
 	if err != nil {
 		return "", "", erro.Wrap(err)
 	}
@@ -353,19 +375,15 @@ func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa str
 	if reqRef {
 		h := hash.New()
 		idps := []string{}
-		tagToRelAcntHash := map[string]string{}
-		for idpId, tagToRelAcnt := range idpToTagToRelAcnt {
-			for tag, relAcnt := range tagToRelAcnt {
+		tagToAcntHash := map[string]string{}
+		for idpId, tagToAcnt := range idpToTagToAcnt {
+			for tag, subAcnt := range tagToAcnt {
 				h.Reset()
-				h.Write([]byte(idpId))
-				h.Write([]byte{0})
-				h.Write([]byte(relAcnt.id()))
-				sum := h.Sum(nil)
-				tagToRelAcntHash[tag] = base64url.EncodeToString(sum[:len(sum)/2])
+				tagToAcntHash[tag] = hashutil.Hashing(h, []byte(idpId), []byte{0}, []byte(subAcnt.id()))
 			}
 			idps = append(idps, idpId)
 		}
-		params[tagRelated_users] = tagToRelAcntHash
+		params[tagRelated_users] = tagToAcntHash
 		params[tagRelated_issuers] = idps
 	}
 
@@ -373,26 +391,11 @@ func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa str
 	params[tagClient_assertion_type] = cliAssTypeJwt_bearer
 
 	// client_assertion
-	jt := jwt.New()
-	jt.SetHeader(tagAlg, this.sigAlg)
-	if this.sigKid != "" {
-		jt.SetHeader(tagKid, this.sigKid)
-	}
-	jt.SetClaim(tagIss, this.selfId)
-	jt.SetClaim(tagSub, this.selfId)
-	jt.SetClaim(tagAud, idp.CoopFromUri())
-	jt.SetClaim(tagJti, this.idGen.String(this.jtiLen))
-	now := time.Now()
-	jt.SetClaim(tagExp, now.Add(this.jtiExpIn).Unix())
-	jt.SetClaim(tagIat, now.Unix())
-	if err := jt.Sign(keys); err != nil {
-		return "", "", erro.Wrap(err)
-	}
-	assData, err := jt.Encode()
+	ass, err := this.makeAssertion(idp, keys)
 	if err != nil {
 		return "", "", erro.Wrap(err)
 	}
-	params[tagClient_assertion] = string(assData)
+	params[tagClient_assertion] = string(ass)
 
 	data, err := json.Marshal(params)
 	if err != nil {
@@ -400,6 +403,9 @@ func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa str
 	}
 
 	r, err := http.NewRequest("POST", idp.CoopFromUri(), bytes.NewReader(data))
+	if err != nil {
+		return "", "", erro.Wrap(err)
+	}
 	r.Header.Set(tagContent_type, contTypeJson)
 	log.Debug(sender, ": Made main cooperation-from request")
 
@@ -435,6 +441,31 @@ func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa str
 func (this *handler) getSubCoopCode(idp idpdb.Element, keys []jwk.Key, toTa string,
 	tagToRelAcnt map[string]*account, sender *requtil.Request) (codTok string, err error) {
 	panic("not yet implemented")
+}
+
+// TA 認証用署名をつくる。
+func (this *handler) makeAssertion(idp idpdb.Element, keys []jwk.Key) ([]byte, error) {
+	ass := jwt.New()
+	ass.SetHeader(tagAlg, this.sigAlg)
+	if this.sigKid != "" {
+		ass.SetHeader(tagKid, this.sigKid)
+	}
+	ass.SetClaim(tagIss, this.selfId)
+	ass.SetClaim(tagSub, this.selfId)
+	ass.SetClaim(tagAud, idp.CoopFromUri())
+	ass.SetClaim(tagJti, this.idGen.String(this.jtiLen))
+	now := time.Now()
+	ass.SetClaim(tagExp, now.Add(this.jtiExpIn).Unix())
+	ass.SetClaim(tagIat, now.Unix())
+	if err := ass.Sign(keys); err != nil {
+		return nil, erro.Wrap(err)
+	}
+	data, err := ass.Encode()
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+
+	return data, nil
 }
 
 func (this *handler) httpClient() *http.Client {
