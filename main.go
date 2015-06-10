@@ -217,7 +217,7 @@ func panicErrorWrapper(s *server.Stopper, f server.HandlerFunc) http.HandlerFunc
 		// panic時にプロセス終了しないようにrecoverする
 		defer func() {
 			if rcv := recover(); rcv != nil {
-				idperr.RespondApiError(w, r, erro.New(rcv), request.Parse(r, ""))
+				idperr.RespondJson(w, r, erro.New(rcv), request.Parse(r, ""))
 				return
 			}
 		}()
@@ -227,7 +227,7 @@ func panicErrorWrapper(s *server.Stopper, f server.HandlerFunc) http.HandlerFunc
 		//////////////////////////////
 
 		if err := f(w, r); err != nil {
-			idperr.RespondApiError(w, r, erro.Wrap(err), request.Parse(r, ""))
+			idperr.RespondJson(w, r, erro.Wrap(err), request.Parse(r, ""))
 			return
 		}
 	}

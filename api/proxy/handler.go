@@ -100,7 +100,7 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if rcv := recover(); rcv != nil {
 			w.Header().Set(tagX_access_proxy_error, fmt.Sprint(rcv))
-			idperr.RespondApiError(w, r, erro.New(rcv), sender)
+			idperr.RespondJson(w, r, erro.New(rcv), sender)
 			return
 		}
 	}()
@@ -120,7 +120,7 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if err := this.serve(w, r, sender); err != nil {
 		w.Header().Set(tagX_access_proxy_error, erro.Unwrap(err).Error())
-		idperr.RespondApiError(w, r, erro.Wrap(err), sender)
+		idperr.RespondJson(w, r, erro.Wrap(err), sender)
 		return
 	}
 }
