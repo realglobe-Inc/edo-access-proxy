@@ -165,6 +165,10 @@ func serve(param *parameters) error {
 
 	// バックエンドの準備完了。
 
+	if param.debug {
+		idperr.Debug = true
+	}
+
 	stopper := server.NewStopper()
 	defer func() {
 		// 処理の終了待ち。
@@ -196,6 +200,7 @@ func serve(param *parameters) error {
 		sessDb,
 		idGen,
 		tr,
+		param.debug,
 	))
 	routes[param.pathProx] = true
 
