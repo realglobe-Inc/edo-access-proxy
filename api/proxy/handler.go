@@ -395,7 +395,7 @@ func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa str
 	params[tagClient_assertion_type] = cliAssTypeJwt_bearer
 
 	// client_assertion
-	ass, err := this.makeAssertion(idp, keys)
+	ass, err := this.makeAssertion(keys, idp.CoopFromUri())
 	if err != nil {
 		return "", "", erro.Wrap(err)
 	}
@@ -469,7 +469,7 @@ func (this *handler) getSubCoopCode(idp idpdb.Element, keys []jwk.Key, ref strin
 	params[tagClient_assertion_type] = cliAssTypeJwt_bearer
 
 	// client_assertion
-	ass, err := this.makeAssertion(idp, keys)
+	ass, err := this.makeAssertion(keys, idp.CoopFromUri())
 	if err != nil {
 		return "", erro.Wrap(err)
 	}
@@ -514,7 +514,7 @@ func (this *handler) getSubCoopCode(idp idpdb.Element, keys []jwk.Key, ref strin
 }
 
 // TA 認証用署名をつくる。
-func (this *handler) makeAssertion(idp idpdb.Element, keys []jwk.Key) ([]byte, error) {
+func (this *handler) makeAssertion(keys []jwk.Key, aud string) ([]byte, error) {
 	ass := jwt.New()
 	ass.SetHeader(tagAlg, this.sigAlg)
 	if this.sigKid != "" {
@@ -522,7 +522,7 @@ func (this *handler) makeAssertion(idp idpdb.Element, keys []jwk.Key) ([]byte, e
 	}
 	ass.SetClaim(tagIss, this.selfId)
 	ass.SetClaim(tagSub, this.selfId)
-	ass.SetClaim(tagAud, idp.CoopFromUri())
+	ass.SetClaim(tagAud, aud)
 	ass.SetClaim(tagJti, this.idGen.String(this.jtiLen))
 	now := time.Now()
 	ass.SetClaim(tagExp, now.Add(this.jtiExpIn).Unix())
