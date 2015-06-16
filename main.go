@@ -76,6 +76,8 @@ func serve(param *parameters) error {
 
 	// バックエンドの準備。
 
+	stopper := server.NewStopper()
+
 	redPools := driver.NewRedisPoolSet(param.redTimeout, param.redPoolSize, param.redPoolExpIn)
 	defer redPools.Close()
 	monPools := driver.NewMongoPoolSet(param.monTimeout)
@@ -165,15 +167,9 @@ func serve(param *parameters) error {
 
 	// バックエンドの準備完了。
 
-	stopper := server.NewStopper()
-	defer func() {
-		// 処理の終了待ち。
-		stopper.Lock()
-		defer stopper.Unlock()
-		for stopper.Stopped() {
-			stopper.Wait()
-		}
-	}()
+	if param.debug {
+		idperr.Debug = true
+	}
 
 	mux := http.NewServeMux()
 	routes := map[string]bool{}
@@ -196,6 +192,7 @@ func serve(param *parameters) error {
 		sessDb,
 		idGen,
 		tr,
+		param.debug,
 	))
 	routes[param.pathProx] = true
 
@@ -204,5 +201,16 @@ func serve(param *parameters) error {
 			return erro.Wrap(idperr.New(idperr.Invalid_request, "invalid endpoint", http.StatusNotFound, nil))
 		}))
 	}
+
+	// サーバー設定完了。
+
+	defer func() {
+		// 処理の終了待ち。
+		stopper.Lock()
+		defer stopper.Unlock()
+		for stopper.Stopped() {
+			stopper.Wait()
+		}
+	}()
 	return server.Serve(param, mux)
 }

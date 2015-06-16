@@ -112,6 +112,7 @@ type parameters struct {
 
 	// 転送先の SSL 証明書を検証しない。
 	noVeri bool
+	debug  bool
 }
 
 func parseParameters(args ...string) (param *parameters, err error) {
@@ -185,6 +186,7 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.sessDbTag, "sessDbTag", "session", "Session DB tag")
 
 	flags.BoolVar(&param.noVeri, "noVeri", false, "Skip SSL verification")
+	flags.BoolVar(&param.debug, "debug", false, "Debug mode")
 
 	var config string
 	flags.StringVar(&config, "c", "", "Config file path")
