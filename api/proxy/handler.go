@@ -368,9 +368,9 @@ func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa str
 	}
 
 	// hash_alg
-	hash, err := hashutil.HashFunction(this.hashAlg)
-	if err != nil {
-		return "", "", erro.Wrap(err)
+	hash := hashutil.Generator(this.hashAlg)
+	if !hash.Available() {
+		return "", "", erro.New("unsupported hash algorithm " + this.hashAlg)
 	}
 	params[tagHash_alg] = this.hashAlg
 
