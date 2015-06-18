@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TA 間連携要請代行エンドポイント。
+// TA 間連携代行エンドポイント。
 package proxy
 
 import (
@@ -368,22 +368,22 @@ func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa str
 	}
 
 	// hash_alg
-	hash, err := hashutil.HashFunction(this.hashAlg)
-	if err != nil {
-		return "", "", erro.Wrap(err)
+	hGen := hashutil.Generator(this.hashAlg)
+	if !hGen.Available() {
+		return "", "", erro.New("unsupported hash algorithm " + this.hashAlg)
 	}
 	params[tagHash_alg] = this.hashAlg
 
 	// related_users
 	// related_issuers
 	if reqRef {
-		h := hash.New()
+		hFun := hGen.New()
 		idps := []string{}
 		tagToAcntHash := map[string]string{}
 		for idpId, tagToAcnt := range idpToTagToAcnt {
 			for tag, subAcnt := range tagToAcnt {
-				h.Reset()
-				tagToAcntHash[tag] = hashutil.Hashing(h, []byte(idpId), []byte{0}, []byte(subAcnt.id()))
+				hFun.Reset()
+				tagToAcntHash[tag] = hashutil.Hashing(hFun, []byte(idpId), []byte{0}, []byte(subAcnt.id()))
 			}
 			idps = append(idps, idpId)
 		}
