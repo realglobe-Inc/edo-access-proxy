@@ -57,7 +57,7 @@ func newTestHandler(keys []jwk.Key, idps []idpdb.Element) *handler {
 		idpdb.NewMemoryDb(idps),
 		token.NewMemoryDb(),
 		session.NewMemoryDb(),
-		rand.New(time.Second),
+		rand.New(time.Minute),
 		nil,
 		true,
 	).(*handler)
@@ -69,7 +69,7 @@ type testIdProvider struct {
 }
 
 func newTestIdProvider(keys []jwk.Key) (*testIdProvider, error) {
-	base, err := test.NewHttpServer(time.Second)
+	base, err := test.NewHttpServer(time.Minute)
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
@@ -106,7 +106,7 @@ type testTa struct {
 }
 
 func newTestTa() (*testTa, error) {
-	base, err := test.NewHttpServer(time.Second)
+	base, err := test.NewHttpServer(time.Minute)
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
@@ -223,7 +223,7 @@ func TestSingleNormal(t *testing.T) {
 			t.Error(buff.Users)
 			t.Fatal(acnts)
 		}
-	case <-time.After(time.Second):
+	case <-time.After(time.Minute):
 		t.Fatal("no request")
 	}
 
@@ -247,7 +247,7 @@ func TestSingleNormal(t *testing.T) {
 			t.Error(string(buff))
 			t.Fatal(string(reqBody))
 		}
-	case <-time.After(time.Second):
+	case <-time.After(time.Minute):
 		t.Fatal("no request")
 	}
 
@@ -584,7 +584,7 @@ func TestSession(t *testing.T) {
 			t.Error(string(buff))
 			t.Fatal(string(reqBody))
 		}
-	case <-time.After(time.Second):
+	case <-time.After(time.Minute):
 		t.Fatal("no request")
 	}
 
@@ -699,7 +699,7 @@ func TestRetry(t *testing.T) {
 		} else if len(buff.Users) > 0 {
 			t.Fatal("accounts is exist")
 		}
-	case <-time.After(time.Second):
+	case <-time.After(time.Minute):
 		t.Fatal("no request")
 	}
 
@@ -723,7 +723,7 @@ func TestRetry(t *testing.T) {
 			t.Error(string(buff))
 			t.Fatal(string(reqBody))
 		}
-	case <-time.After(time.Second):
+	case <-time.After(time.Minute):
 		t.Fatal("no request")
 	}
 
