@@ -97,6 +97,10 @@ func New(
 	}
 }
 
+func (this *handler) httpClient() *http.Client {
+	return &http.Client{Transport: this.tr}
+}
+
 func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var sender *requtil.Request
 
@@ -122,34 +126,41 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Info(sender, ": Received proxy request")
 	defer log.Info(sender, ": Handled proxy request")
 
-	if err := this.serve(w, r, sender); err != nil {
+	if err := (&environment{this, sender}).serve(w, r); err != nil {
 		w.Header().Set(tagX_access_proxy_error, erro.Unwrap(err).Error())
 		idperr.RespondJson(w, r, erro.Wrap(err), sender)
 		return
 	}
 }
 
-func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requtil.Request) error {
+// environment のメソッドは idperr.Error を返す。
+type environment struct {
+	*handler
+
+	sender *requtil.Request
+}
+
+func (this *environment) serve(w http.ResponseWriter, r *http.Request) error {
 	req, err := parseRequest(r)
 	if err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
 	}
 
-	log.Debug(sender, ": Parsed proxy request")
+	log.Debug(this.sender, ": Parsed proxy request")
 
 	uri, err := url.Parse(req.toUri())
 	if err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
 	}
 
-	log.Debug(sender, ": Destination is "+req.toUri())
+	log.Debug(this.sender, ": Destination is "+req.toUri())
 
 	toTa := req.toTa()
 	if toTa == "" {
 		toTa = uri.Scheme + "://" + uri.Host
 	}
 
-	log.Debug(sender, ": To-TA is "+toTa)
+	log.Debug(this.sender, ": To-TA is "+toTa)
 
 	r.URL = uri
 	r.Host = uri.Host
@@ -159,14 +170,14 @@ func (this *handler) serve(w http.ResponseWriter, r *http.Request, sender *requt
 		if err != nil {
 			return erro.Wrap(err)
 		} else if sess != nil && !time.Now().After(sess.Expires()) {
-			return this.proxyWithSession(w, r, sess, sender)
+			return this.proxyWithSession(w, r, sess)
 		}
 	}
-	return this.proxyThroughIdProvider(w, r, req.account(), req.accounts(), toTa, sender)
+	return this.proxyThroughIdProvider(w, r, req.account(), req.accounts(), toTa)
 }
 
 // セッションを利用して TA 間連携する。
-func (this *handler) proxyWithSession(w http.ResponseWriter, r *http.Request, sess *session.Element, sender *requtil.Request) (err error) {
+func (this *environment) proxyWithSession(w http.ResponseWriter, r *http.Request, sess *session.Element) (err error) {
 	var buff *buffer
 	if r.Body != nil {
 		buff = newBuffer(r.Body, this.fileThres, tempPrefix)
@@ -179,7 +190,7 @@ func (this *handler) proxyWithSession(w http.ResponseWriter, r *http.Request, se
 		Value: sess.Id(),
 	})
 
-	log.Debug(sender, ": Proxy with session "+logutil.Mosaic(sess.Id()))
+	log.Debug(this.sender, ": Proxy with session "+logutil.Mosaic(sess.Id()))
 
 	r.RequestURI = ""
 	server.LogRequest(level.DEBUG, r, this.debug)
@@ -197,7 +208,7 @@ func (this *handler) proxyWithSession(w http.ResponseWriter, r *http.Request, se
 	if coopErr := resp.Header.Get(tagX_edo_cooperation_error); coopErr == "" {
 		return copyResponse(w, resp)
 	} else {
-		log.Warn(sender, ": Cooperation error: "+coopErr)
+		log.Warn(this.sender, ": Cooperation error: "+coopErr)
 	}
 
 	if buff != nil {
@@ -207,11 +218,11 @@ func (this *handler) proxyWithSession(w http.ResponseWriter, r *http.Request, se
 		r.Body = buff
 	}
 	r.Header.Del(tagCookie)
-	return this.proxyThroughIdProvider(w, r, newMainAccount(sess.AccountTag(), sess.TokenTag()), nil, sess.ToTa(), sender)
+	return this.proxyThroughIdProvider(w, r, newMainAccount(sess.AccountTag(), sess.TokenTag()), nil, sess.ToTa())
 }
 
 // ID プロバイダを介して TA 間連携する。
-func (this *handler) proxyThroughIdProvider(w http.ResponseWriter, r *http.Request, acnt *account, acnts []*account, toTa string, sender *requtil.Request) error {
+func (this *environment) proxyThroughIdProvider(w http.ResponseWriter, r *http.Request, acnt *account, acnts []*account, toTa string) error {
 	tok, err := this.tokDb.GetByTag(acnt.tokenTag())
 	if err != nil {
 		return erro.Wrap(err)
@@ -221,35 +232,35 @@ func (this *handler) proxyThroughIdProvider(w http.ResponseWriter, r *http.Reque
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "access token "+acnt.tokenTag()+" expired", http.StatusBadRequest, err))
 	}
 
-	log.Debug(sender, ": Access token "+logutil.Mosaic(tok.Tag())+" is exist")
+	log.Debug(this.sender, ": Access token "+logutil.Mosaic(tok.Tag())+" is exist")
 
-	idps, tagToAcnt, idpToTagToAcnt, err := getIdpAndAccountMaps(this.idpDb, tok.IdProvider(), acnts)
+	idps, tagToAcnt, idpToTagToAcnt, err := this.getIdpAndAccountMaps(this.idpDb, tok.IdProvider(), acnts)
 	if err != nil {
 		return erro.Wrap(err)
 	}
 
-	log.Debug(sender, ": ID provider checks are passed")
+	log.Debug(this.sender, ": ID provider checks are passed")
 
 	keys, err := this.keyDb.Get()
 	if err != nil {
 		return erro.Wrap(err)
 	}
 
-	codTok, ref, err := this.getMainCoopCode(idps[tok.IdProvider()], keys, toTa, tok, acnt, tagToAcnt, idpToTagToAcnt, sender)
+	codTok, ref, err := this.getMainCoopCode(idps[tok.IdProvider()], keys, toTa, tok, acnt, tagToAcnt, idpToTagToAcnt)
 	if err != nil {
 		return erro.Wrap(err)
 	}
 
-	log.Debug(sender, ": Got main cooperation code from "+tok.IdProvider())
+	log.Debug(this.sender, ": Got main cooperation code from "+tok.IdProvider())
 
 	codToks := []string{codTok}
 	for idpId, subTagToAcnt := range idpToTagToAcnt {
-		codTok, err := this.getSubCoopCode(idps[idpId], keys, ref, subTagToAcnt, sender)
+		codTok, err := this.getSubCoopCode(idps[idpId], keys, ref, subTagToAcnt)
 		if err != nil {
 			return erro.Wrap(err)
 		}
 
-		log.Debug(sender, ": Got sub cooperation code from "+idpId)
+		log.Debug(this.sender, ": Got sub cooperation code from "+idpId)
 
 		codToks = append(codToks, codTok)
 	}
@@ -258,7 +269,7 @@ func (this *handler) proxyThroughIdProvider(w http.ResponseWriter, r *http.Reque
 		r.Header.Add(tagX_edo_code_tokens, codTok)
 	}
 
-	log.Debug(sender, ": Proxy through ID provider")
+	log.Debug(this.sender, ": Proxy through ID provider")
 
 	r.RequestURI = ""
 	server.LogRequest(level.DEBUG, r, this.debug)
@@ -281,14 +292,14 @@ func (this *handler) proxyThroughIdProvider(w http.ResponseWriter, r *http.Reque
 // tagToAcnt: 主体の ID プロバイダに属すアカウントの、アカウントタグからアカウント情報へのマップ。
 // idpToTagToAcnt: 主体の属さない ID プロバイダとそこに属すアカウントの、
 // ID プロバイダの ID -> アカウントタグ -> アカウント情報のマップ。
-func getIdpAndAccountMaps(idpDb idpdb.Db, mainIdpId string, acnts []*account) (idps map[string]idpdb.Element, tagToAcnt map[string]*account, idpToTagToAcnt map[string]map[string]*account, err error) {
+func (this *environment) getIdpAndAccountMaps(idpDb idpdb.Db, mainIdpId string, acnts []*account) (idps map[string]idpdb.Element, tagToAcnt map[string]*account, idpToTagToAcnt map[string]map[string]*account, err error) {
 	idps = map[string]idpdb.Element{}
 	{
 		idp, err := idpDb.Get(mainIdpId)
 		if err != nil {
 			return nil, nil, nil, erro.Wrap(err)
 		} else if idp == nil {
-			return nil, nil, nil, erro.New("main ID provider " + mainIdpId + " is not exist")
+			return nil, nil, nil, erro.New(idperr.New(idperr.Invalid_request, "main ID provider "+mainIdpId+" is not exist", http.StatusBadRequest, nil))
 		}
 		idps[idp.Id()] = idp
 	}
@@ -300,7 +311,7 @@ func getIdpAndAccountMaps(idpDb idpdb.Db, mainIdpId string, acnts []*account) (i
 			if err != nil {
 				return nil, nil, nil, erro.Wrap(err)
 			} else if idp == nil {
-				return nil, nil, nil, erro.New("sub ID provider " + acnt.idProvider() + " is not exist")
+				return nil, nil, nil, erro.New(idperr.New(idperr.Invalid_request, "sub ID provider "+acnt.idProvider()+" is not exist", http.StatusBadRequest, nil))
 			}
 			idps[idp.Id()] = idp
 		}
@@ -325,9 +336,8 @@ func getIdpAndAccountMaps(idpDb idpdb.Db, mainIdpId string, acnts []*account) (i
 }
 
 // 主体の属す ID プロバイダから仲介コードを取得する。
-func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa string,
-	tok *token.Element, acnt *account, tagToAcnt map[string]*account, idpToTagToAcnt map[string]map[string]*account,
-	sender *requtil.Request) (codTok, ref string, err error) {
+func (this *environment) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa string,
+	tok *token.Element, acnt *account, tagToAcnt map[string]*account, idpToTagToAcnt map[string]map[string]*account) (codTok, ref string, err error) {
 
 	params := map[string]interface{}{}
 
@@ -395,7 +405,7 @@ func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa str
 	params[tagClient_assertion_type] = cliAssTypeJwt_bearer
 
 	// client_assertion
-	ass, err := this.makeAssertion(keys, idp.CoopFromUri())
+	ass, err := makeAssertion(this.handler, keys, idp.CoopFromUri())
 	if err != nil {
 		return "", "", erro.Wrap(err)
 	}
@@ -411,7 +421,7 @@ func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa str
 		return "", "", erro.Wrap(err)
 	}
 	r.Header.Set(tagContent_type, contTypeJson)
-	log.Debug(sender, ": Made main cooperation-from request")
+	log.Debug(this.sender, ": Made main cooperation-from request")
 
 	server.LogRequest(level.DEBUG, r, this.debug)
 	resp, err := this.httpClient().Do(r)
@@ -443,8 +453,8 @@ func (this *handler) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa str
 }
 
 // 主体の属さない ID プロバイダから仲介コードを取得する。
-func (this *handler) getSubCoopCode(idp idpdb.Element, keys []jwk.Key, ref string,
-	tagToAcnt map[string]*account, sender *requtil.Request) (codTok string, err error) {
+func (this *environment) getSubCoopCode(idp idpdb.Element, keys []jwk.Key, ref string,
+	tagToAcnt map[string]*account) (codTok string, err error) {
 
 	// response_type
 	// grant_type
@@ -469,7 +479,7 @@ func (this *handler) getSubCoopCode(idp idpdb.Element, keys []jwk.Key, ref strin
 	params[tagClient_assertion_type] = cliAssTypeJwt_bearer
 
 	// client_assertion
-	ass, err := this.makeAssertion(keys, idp.CoopFromUri())
+	ass, err := makeAssertion(this.handler, keys, idp.CoopFromUri())
 	if err != nil {
 		return "", erro.Wrap(err)
 	}
@@ -485,7 +495,7 @@ func (this *handler) getSubCoopCode(idp idpdb.Element, keys []jwk.Key, ref strin
 		return "", erro.Wrap(err)
 	}
 	r.Header.Set(tagContent_type, contTypeJson)
-	log.Debug(sender, ": Made sub cooperation-from request")
+	log.Debug(this.sender, ": Made sub cooperation-from request")
 
 	server.LogRequest(level.DEBUG, r, this.debug)
 	resp, err := this.httpClient().Do(r)
@@ -514,18 +524,18 @@ func (this *handler) getSubCoopCode(idp idpdb.Element, keys []jwk.Key, ref strin
 }
 
 // TA 認証用署名をつくる。
-func (this *handler) makeAssertion(keys []jwk.Key, aud string) ([]byte, error) {
+func makeAssertion(hndl *handler, keys []jwk.Key, aud string) ([]byte, error) {
 	ass := jwt.New()
-	ass.SetHeader(tagAlg, this.sigAlg)
-	if this.sigKid != "" {
-		ass.SetHeader(tagKid, this.sigKid)
+	ass.SetHeader(tagAlg, hndl.sigAlg)
+	if hndl.sigKid != "" {
+		ass.SetHeader(tagKid, hndl.sigKid)
 	}
-	ass.SetClaim(tagIss, this.selfId)
-	ass.SetClaim(tagSub, this.selfId)
+	ass.SetClaim(tagIss, hndl.selfId)
+	ass.SetClaim(tagSub, hndl.selfId)
 	ass.SetClaim(tagAud, aud)
-	ass.SetClaim(tagJti, this.idGen.String(this.jtiLen))
+	ass.SetClaim(tagJti, hndl.idGen.String(hndl.jtiLen))
 	now := time.Now()
-	ass.SetClaim(tagExp, now.Add(this.jtiExpIn).Unix())
+	ass.SetClaim(tagExp, now.Add(hndl.jtiExpIn).Unix())
 	ass.SetClaim(tagIat, now.Unix())
 	if err := ass.Sign(keys); err != nil {
 		return nil, erro.Wrap(err)
@@ -536,8 +546,4 @@ func (this *handler) makeAssertion(keys []jwk.Key, aud string) ([]byte, error) {
 	}
 
 	return data, nil
-}
-
-func (this *handler) httpClient() *http.Client {
-	return &http.Client{Transport: this.tr}
 }
