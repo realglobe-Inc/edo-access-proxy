@@ -34,11 +34,17 @@ func NewRedisDb(pool *redis.Pool, tag string) Db {
 	}
 }
 
-func (this *redisDb) GetByParams(acntTag, tokTag, toTa string) (*Element, error) {
+func (this *redisDb) GetByParams(toTa string, acnts map[string]*Account) (*Element, error) {
 	conn := this.pool.Get()
 	defer conn.Close()
 
-	key := acntTag + tokTag + toTa
+	// json.Marshal が非明示的に要素をソートすることに依存している。
+	raw, err := json.Marshal(acnts)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+
+	key := toTa + string(raw)
 	data, err := redis.Bytes(conn.Do("GET", this.tag+key))
 	if err != nil {
 		if err == redis.ErrNil {
@@ -48,25 +54,35 @@ func (this *redisDb) GetByParams(acntTag, tokTag, toTa string) (*Element, error)
 		return nil, erro.Wrap(err)
 	}
 
-	var elem Element
-	if err := json.Unmarshal(data, &elem); err != nil {
+	var buff struct {
+		Id  string
+		Exp time.Time
+	}
+	if err := json.Unmarshal(data, &buff); err != nil {
 		return nil, erro.Wrap(err)
 	}
-
-	return &elem, nil
+	return New(buff.Id, buff.Exp, toTa, acnts), nil
 }
 
 func (this *redisDb) Save(elem *Element, exp time.Time) error {
 	conn := this.pool.Get()
 	defer conn.Close()
 
-	data, err := json.Marshal(elem)
+	data, err := json.Marshal(map[string]interface{}{
+		"id":  elem.Id(),
+		"exp": elem.Expires(),
+	})
 	if err != nil {
 		return erro.Wrap(err)
 	}
-	expIn := int64(exp.Sub(time.Now()) / time.Millisecond)
 
-	key := elem.AccountTag() + elem.TokenTag() + elem.ToTa()
+	// json.Marshal が非明示的に要素をソートすることに依存している。
+	raw, err := json.Marshal(elem.Accounts())
+	if err != nil {
+		return erro.Wrap(err)
+	}
+	key := elem.ToTa() + string(raw)
+	expIn := int64(exp.Sub(time.Now()) / time.Millisecond)
 	if _, err := conn.Do("SET", this.tag+key, data, "PX", expIn); err != nil {
 		return erro.Wrap(err)
 	}

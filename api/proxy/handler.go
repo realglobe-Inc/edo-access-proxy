@@ -46,9 +46,11 @@ type handler struct {
 	sigKid  string
 	hashAlg string
 
-	jtiLen    int
-	jtiExpIn  time.Duration
-	fileThres int
+	sessLabel   string
+	sessDbExpIn time.Duration
+	jtiLen      int
+	jtiExpIn    time.Duration
+	fileThres   int
 
 	keyDb  keydb.Db
 	idpDb  idpdb.Db
@@ -67,6 +69,8 @@ func New(
 	sigAlg string,
 	sigKid string,
 	hashAlg string,
+	sessLabel string,
+	sessDbExpIn time.Duration,
 	jtiLen int,
 	jtiExpIn time.Duration,
 	fileThres int,
@@ -84,6 +88,8 @@ func New(
 		sigAlg,
 		sigKid,
 		hashAlg,
+		sessLabel,
+		sessDbExpIn,
 		jtiLen,
 		jtiExpIn,
 		fileThres,
@@ -165,19 +171,17 @@ func (this *environment) serve(w http.ResponseWriter, r *http.Request) error {
 	r.URL = uri
 	r.Host = uri.Host
 
-	if len(req.accounts()) == 0 {
-		sess, err := this.sessDb.GetByParams(req.account().tag(), req.account().tokenTag(), toTa)
-		if err != nil {
-			return erro.Wrap(err)
-		} else if sess != nil && !time.Now().After(sess.Expires()) {
-			return this.proxyWithSession(w, r, sess)
-		}
+	sess, err := this.sessDb.GetByParams(toTa, req.accounts())
+	if err != nil {
+		return erro.Wrap(err)
+	} else if sess != nil && !time.Now().After(sess.Expires()) {
+		return this.proxyWithSession(w, r, sess, req.accountTag())
 	}
-	return this.proxyThroughIdProvider(w, r, req.account(), req.accounts(), toTa)
+	return this.proxyThroughIdProvider(w, r, toTa, req.accountTag(), req.accounts())
 }
 
 // セッションを利用して TA 間連携する。
-func (this *environment) proxyWithSession(w http.ResponseWriter, r *http.Request, sess *session.Element) (err error) {
+func (this *environment) proxyWithSession(w http.ResponseWriter, r *http.Request, sess *session.Element, acntTag string) (err error) {
 	var buff *buffer
 	if r.Body != nil {
 		buff = newBuffer(r.Body, this.fileThres, tempPrefix)
@@ -218,18 +222,18 @@ func (this *environment) proxyWithSession(w http.ResponseWriter, r *http.Request
 		r.Body = buff
 	}
 	r.Header.Del(tagCookie)
-	return this.proxyThroughIdProvider(w, r, newMainAccount(sess.AccountTag(), sess.TokenTag()), nil, sess.ToTa())
+	return this.proxyThroughIdProvider(w, r, sess.ToTa(), acntTag, sess.Accounts())
 }
 
 // ID プロバイダを介して TA 間連携する。
-func (this *environment) proxyThroughIdProvider(w http.ResponseWriter, r *http.Request, acnt *account, acnts []*account, toTa string) error {
-	tok, err := this.tokDb.GetByTag(acnt.tokenTag())
+func (this *environment) proxyThroughIdProvider(w http.ResponseWriter, r *http.Request, toTa string, acntTag string, acnts map[string]*session.Account) error {
+	tok, err := this.tokDb.GetByTag(acnts[acntTag].TokenTag())
 	if err != nil {
 		return erro.Wrap(err)
 	} else if tok == nil {
-		return erro.Wrap(idperr.New(idperr.Invalid_request, "no access token "+acnt.tokenTag(), http.StatusBadRequest, err))
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "no access token "+acnts[acntTag].TokenTag(), http.StatusBadRequest, err))
 	} else if time.Now().After(tok.Expires()) {
-		return erro.Wrap(idperr.New(idperr.Invalid_request, "access token "+acnt.tokenTag()+" expired", http.StatusBadRequest, err))
+		return erro.Wrap(idperr.New(idperr.Invalid_request, "access token "+acnts[acntTag].TokenTag()+" expired", http.StatusBadRequest, err))
 	}
 
 	log.Debug(this.sender, ": Access token "+logutil.Mosaic(tok.Tag())+" is exist")
@@ -246,7 +250,7 @@ func (this *environment) proxyThroughIdProvider(w http.ResponseWriter, r *http.R
 		return erro.Wrap(err)
 	}
 
-	codTok, ref, err := this.getMainCoopCode(idps[tok.IdProvider()], keys, toTa, tok, acnt, tagToAcnt, idpToTagToAcnt)
+	codTok, ref, err := this.getMainCoopCode(idps[tok.IdProvider()], keys, toTa, tok, acntTag, tagToAcnt, idpToTagToAcnt)
 	if err != nil {
 		return erro.Wrap(err)
 	}
@@ -284,6 +288,24 @@ func (this *environment) proxyThroughIdProvider(w http.ResponseWriter, r *http.R
 	defer resp.Body.Close()
 	server.LogResponse(level.DEBUG, resp, this.debug)
 
+	for _, cook := range resp.Cookies() {
+		if cook.Name != this.sessLabel {
+			continue
+		}
+		now := time.Now()
+		exp := cook.Expires
+		if exp.IsZero() {
+			exp = now.Add(time.Second * time.Duration(cook.MaxAge))
+		}
+		sess := session.New(cook.Value, exp, toTa, acnts)
+		if err := this.sessDb.Save(sess, now.Add(this.sessDbExpIn)); err != nil {
+			log.Warn(erro.Unwrap(err))
+			log.Debug(erro.Wrap(err))
+		} else {
+			log.Debug(this.sender, ": Saved session "+logutil.Mosaic(sess.Id()))
+		}
+	}
+
 	return copyResponse(w, resp)
 }
 
@@ -292,7 +314,7 @@ func (this *environment) proxyThroughIdProvider(w http.ResponseWriter, r *http.R
 // tagToAcnt: 主体の ID プロバイダに属すアカウントの、アカウントタグからアカウント情報へのマップ。
 // idpToTagToAcnt: 主体の属さない ID プロバイダとそこに属すアカウントの、
 // ID プロバイダの ID -> アカウントタグ -> アカウント情報のマップ。
-func (this *environment) getIdpAndAccountMaps(idpDb idpdb.Db, mainIdpId string, acnts []*account) (idps map[string]idpdb.Element, tagToAcnt map[string]*account, idpToTagToAcnt map[string]map[string]*account, err error) {
+func (this *environment) getIdpAndAccountMaps(idpDb idpdb.Db, mainIdpId string, acnts map[string]*session.Account) (idps map[string]idpdb.Element, tagToAcnt map[string]*session.Account, idpToTagToAcnt map[string]map[string]*session.Account, err error) {
 	idps = map[string]idpdb.Element{}
 	{
 		idp, err := idpDb.Get(mainIdpId)
@@ -304,32 +326,34 @@ func (this *environment) getIdpAndAccountMaps(idpDb idpdb.Db, mainIdpId string, 
 		idps[idp.Id()] = idp
 	}
 
-	tagToAcnt = map[string]*account{}
-	for _, acnt := range acnts {
-		if idps[acnt.idProvider()] == nil {
-			idp, err := idpDb.Get(acnt.idProvider())
+	tagToAcnt = map[string]*session.Account{}
+	for acntTag, acnt := range acnts {
+		if acnt.TokenTag() != "" {
+			continue
+		} else if acnt.IdProvider() == mainIdpId {
+			tagToAcnt[acntTag] = acnt
+			continue
+		}
+
+		if idps[acnt.IdProvider()] == nil {
+			idp, err := idpDb.Get(acnt.IdProvider())
 			if err != nil {
 				return nil, nil, nil, erro.Wrap(err)
 			} else if idp == nil {
-				return nil, nil, nil, erro.New(idperr.New(idperr.Invalid_request, "sub ID provider "+acnt.idProvider()+" is not exist", http.StatusBadRequest, nil))
+				return nil, nil, nil, erro.New(idperr.New(idperr.Invalid_request, "sub ID provider "+acnt.IdProvider()+" is not exist", http.StatusBadRequest, nil))
 			}
 			idps[idp.Id()] = idp
 		}
 
-		if acnt.idProvider() == mainIdpId {
-			tagToAcnt[acnt.tag()] = acnt
-			continue
-		}
-
 		if idpToTagToAcnt == nil {
-			idpToTagToAcnt = map[string]map[string]*account{}
+			idpToTagToAcnt = map[string]map[string]*session.Account{}
 		}
-		subTagToAcnt := idpToTagToAcnt[acnt.idProvider()]
+		subTagToAcnt := idpToTagToAcnt[acnt.IdProvider()]
 		if subTagToAcnt == nil {
-			subTagToAcnt = map[string]*account{}
-			idpToTagToAcnt[acnt.idProvider()] = subTagToAcnt
+			subTagToAcnt = map[string]*session.Account{}
+			idpToTagToAcnt[acnt.IdProvider()] = subTagToAcnt
 		}
-		subTagToAcnt[acnt.tag()] = acnt
+		subTagToAcnt[acntTag] = acnt
 	}
 
 	return idps, tagToAcnt, idpToTagToAcnt, nil
@@ -337,7 +361,7 @@ func (this *environment) getIdpAndAccountMaps(idpDb idpdb.Db, mainIdpId string, 
 
 // 主体の属す ID プロバイダから仲介コードを取得する。
 func (this *environment) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa string,
-	tok *token.Element, acnt *account, tagToAcnt map[string]*account, idpToTagToAcnt map[string]map[string]*account) (codTok, ref string, err error) {
+	tok *token.Element, acntTag string, tagToAcnt map[string]*session.Account, idpToTagToAcnt map[string]map[string]*session.Account) (codTok, ref string, err error) {
 
 	params := map[string]interface{}{}
 
@@ -366,13 +390,13 @@ func (this *environment) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa
 	// expires_in
 
 	// user_tag
-	params[tagUser_tag] = acnt.tag()
+	params[tagUser_tag] = acntTag
 
 	// users
 	if len(tagToAcnt) > 0 {
 		tagToAcntId := map[string]string{}
 		for tag, acnt := range tagToAcnt {
-			tagToAcntId[tag] = acnt.id()
+			tagToAcntId[tag] = acnt.Id()
 		}
 		params[tagUsers] = tagToAcntId
 	}
@@ -393,7 +417,7 @@ func (this *environment) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa
 		for idpId, tagToAcnt := range idpToTagToAcnt {
 			for tag, subAcnt := range tagToAcnt {
 				hFun.Reset()
-				tagToAcntHash[tag] = hashutil.Hashing(hFun, []byte(idpId), []byte{0}, []byte(subAcnt.id()))
+				tagToAcntHash[tag] = hashutil.Hashing(hFun, []byte(idpId), []byte{0}, []byte(subAcnt.Id()))
 			}
 			idps = append(idps, idpId)
 		}
@@ -454,7 +478,7 @@ func (this *environment) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa
 
 // 主体の属さない ID プロバイダから仲介コードを取得する。
 func (this *environment) getSubCoopCode(idp idpdb.Element, keys []jwk.Key, ref string,
-	tagToAcnt map[string]*account) (codTok string, err error) {
+	tagToAcnt map[string]*session.Account) (codTok string, err error) {
 
 	// response_type
 	// grant_type
@@ -470,7 +494,7 @@ func (this *environment) getSubCoopCode(idp idpdb.Element, keys []jwk.Key, ref s
 	if len(tagToAcnt) > 0 {
 		tagToAcntId := map[string]string{}
 		for tag, acnt := range tagToAcnt {
-			tagToAcntId[tag] = acnt.id()
+			tagToAcntId[tag] = acnt.Id()
 		}
 		params[tagUsers] = tagToAcntId
 	}

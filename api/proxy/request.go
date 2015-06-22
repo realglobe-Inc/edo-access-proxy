@@ -16,16 +16,17 @@ package proxy
 
 import (
 	"encoding/json"
+	"github.com/realglobe-Inc/edo-access-proxy/database/session"
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"net/http"
 )
 
 type request struct {
-	toUri_ string
-	toTa_  string
-	acnt   *account
-	acnts  []*account
+	toUri_  string
+	toTa_   string
+	acntTag string
+	acnts   map[string]*session.Account
 }
 
 func parseRequest(r *http.Request) (*request, error) {
@@ -38,44 +39,29 @@ func parseRequest(r *http.Request) (*request, error) {
 	if err != nil {
 		return nil, erro.Wrap(err)
 	}
-	data := jt.RawBody()
-	var buffs map[string]*struct {
-		TokTag string `json:"at_tag"`
-		Iss    string `json:"iss"`
-		Sub    string `json:"sub"`
-	}
-	if err := json.Unmarshal(data, &buffs); err != nil {
+	var acnts map[string]*session.Account
+	if err := json.Unmarshal(jt.RawBody(), &acnts); err != nil {
 		return nil, erro.Wrap(err)
 	}
-	var acnt *account
-	var acnts []*account
-	for tag, buff := range buffs {
-		if buff.TokTag != "" {
-			if acnt != nil {
+	var mainTag string
+	for tag, acnt := range acnts {
+		if acnt.TokenTag() != "" {
+			if mainTag != "" {
 				return nil, erro.New("two main accounts")
 			}
-			acnt = newMainAccount(tag, buff.TokTag)
-		} else {
-			if acnts == nil {
-				acnts = []*account{}
-			} else if buff.Iss == "" {
-				return nil, erro.New("no ID provider ID")
-			} else if buff.Sub == "" {
-				return nil, erro.New("no account ID")
-			}
-			acnts = append(acnts, newSubAccount(tag, buff.Iss, buff.Sub))
+			mainTag = tag
 		}
 	}
-	if acnt == nil {
+	if mainTag == "" {
 		return nil, erro.New("no main account")
 	}
 	r.Header.Del(tagX_access_proxy_to)
 	r.Header.Del(tagX_access_proxy_users)
 	return &request{
-		toUri_: toUri,
-		toTa_:  r.Header.Get(tagX_access_proxy_to_id),
-		acnt:   acnt,
-		acnts:  acnts,
+		toUri_:  toUri,
+		toTa_:   r.Header.Get(tagX_access_proxy_to_id),
+		acntTag: mainTag,
+		acnts:   acnts,
 	}, nil
 }
 
@@ -89,12 +75,12 @@ func (this *request) toTa() string {
 	return this.toTa_
 }
 
-// 処理の主体の情報を返す。
-func (this *request) account() *account {
-	return this.acnt
+// 処理の主体のアカウントタグを返す。
+func (this *request) accountTag() string {
+	return this.acntTag
 }
 
-// 処理の主体でないアカウントの情報を返す。
-func (this *request) accounts() []*account {
+// アカウントの情報を返す。
+func (this *request) accounts() map[string]*session.Account {
 	return this.acnts
 }

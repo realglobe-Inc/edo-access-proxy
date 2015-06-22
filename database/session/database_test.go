@@ -21,21 +21,21 @@ import (
 )
 
 func testDb(t *testing.T, db Db) {
-	if elem, err := db.GetByParams(test_acntTag, test_tokTag, test_toTa); err != nil {
+	if elem, err := db.GetByParams(test_toTa, test_acnts); err != nil {
 		t.Fatal(err)
 	} else if elem != nil {
 		t.Fatal(elem)
 	}
 
 	exp := time.Now().Add(time.Minute)
-	elem := New(test_id, exp, test_acntTag, test_tokTag, test_toTa)
+	elem := New(test_id, exp, test_toTa, test_acnts)
 	saveExp := exp.Add(time.Minute)
 
 	if err := db.Save(elem, saveExp); err != nil {
 		t.Fatal(err)
 	}
 
-	elem2, err := db.GetByParams(elem.AccountTag(), elem.TokenTag(), elem.ToTa())
+	elem2, err := db.GetByParams(elem.ToTa(), elem.Accounts())
 	if err != nil {
 		t.Fatal(err)
 	} else if elem2 == nil {
