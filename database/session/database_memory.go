@@ -15,6 +15,8 @@
 package session
 
 import (
+	"encoding/json"
+	"github.com/realglobe-Inc/go-lib/erro"
 	"sync"
 	"time"
 )
@@ -33,11 +35,17 @@ func NewMemoryDb() Db {
 	}
 }
 
-func (this *memoryDb) GetByParams(acntTag, tokTag, toTa string) (*Element, error) {
+func (this *memoryDb) GetByParams(toTa string, acnts map[string]*Account) (*Element, error) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	key := acntTag + tokTag + toTa
+	// json.Marshal が非明示的に要素をソートすることに依存している。
+	raw, err := json.Marshal(acnts)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+
+	key := toTa + string(raw)
 	elem := this.paramToElem[key]
 	if elem == nil {
 		return nil, nil
@@ -54,7 +62,13 @@ func (this *memoryDb) Save(elem *Element, exp time.Time) error {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	key := elem.AccountTag() + elem.TokenTag() + elem.ToTa()
+	// json.Marshal が非明示的に要素をソートすることに依存している。
+	raw, err := json.Marshal(elem.Accounts())
+	if err != nil {
+		return erro.Wrap(err)
+	}
+
+	key := elem.ToTa() + string(raw)
 	this.paramToElem[key] = elem
 	this.paramToExp[key] = exp
 	return nil

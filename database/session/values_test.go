@@ -14,18 +14,17 @@
 
 package session
 
-import (
-	"time"
+const (
+	test_id     = "Xewtmrlnu5HVDzem5rmyGzoe2edQjI"
+	test_toTa   = "https://ta.example.org"
+	test_tokTag = "HcmmhWaXLE"
+	test_idp    = "https://ta.example.org"
+	test_acntId = "https://ta.example.org"
 )
 
-// バックエンドのデータもこのプログラム専用の前提。
-
-// セッションの格納庫。
-type Db interface {
-	// 取得。
-	GetByParams(toTa string, acnts map[string]*Account) (*Element, error)
-
-	// 保存。
-	// exp: 保存期限。この期間以降は Get できなくて良い。
-	Save(elem *Element, exp time.Time) error
-}
+var (
+	test_acnts = map[string]*Account{
+		"tester": NewMainAccount(test_tokTag),
+		"user":   NewSubAccount(test_idp, test_acntId),
+	}
+)

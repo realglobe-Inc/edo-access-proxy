@@ -183,6 +183,8 @@ func serve(param *parameters) error {
 		param.sigAlg,
 		param.sigKid,
 		param.hashAlg,
+		param.sessLabel,
+		param.sessDbExpIn,
 		param.jtiLen,
 		param.jtiExpIn,
 		param.fileThres,

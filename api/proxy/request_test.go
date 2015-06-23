@@ -16,6 +16,7 @@ package proxy
 
 import (
 	"fmt"
+	"github.com/realglobe-Inc/edo-access-proxy/database/session"
 	"github.com/realglobe-Inc/edo-lib/base64url"
 	"net/http"
 	"reflect"
@@ -43,10 +44,13 @@ func TestRequest(t *testing.T) {
 	} else if req.toTa() != test_toTaId {
 		t.Error(req.toTa())
 		t.Fatal(test_toTaId)
-	} else if acnt := newMainAccount(test_acntTag, test_tokTag); !reflect.DeepEqual(req.account(), acnt) {
-		t.Error(req.account())
-		t.Fatal(acnt)
-	} else if acnts := []*account{newSubAccount(test_subAcnt1Tag, test_idpId, test_subAcnt1Id)}; !reflect.DeepEqual(req.accounts(), acnts) {
+	} else if req.accountTag() != test_acntTag {
+		t.Error(req.accountTag())
+		t.Fatal(test_acntTag)
+	} else if acnts := map[string]*session.Account{
+		test_acntTag:     session.NewMainAccount(test_tokTag),
+		test_subAcnt1Tag: session.NewSubAccount(test_idpId, test_subAcnt1Id),
+	}; !reflect.DeepEqual(req.accounts(), acnts) {
 		t.Error(fmt.Sprintf("%#v", req.accounts()))
 		t.Fatal(fmt.Sprintf("%#v", acnts))
 	}

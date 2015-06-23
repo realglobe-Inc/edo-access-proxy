@@ -63,6 +63,7 @@ type parameters struct {
 	pathProx string
 
 	// セッション。
+	sessLabel   string
 	sessDbExpIn time.Duration
 	// JWT の ID (jti)。
 	jtiLen   int
@@ -151,6 +152,7 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.StringVar(&param.pathOk, "pathOk", "/ok", "OK URI")
 	flags.StringVar(&param.pathProx, "pathProx", "/", "Proxy URI")
 
+	flags.StringVar(&param.sessLabel, "sessLabel", "Edo-Cooperation", "Session label")
 	flags.DurationVar(&param.sessDbExpIn, "sessDbExpIn", 14*24*time.Hour, "Session keep duration")
 	flags.IntVar(&param.jtiLen, "jtiLen", 20, "JWT ID length")
 	flags.DurationVar(&param.jtiExpIn, "jtiExpIn", 6*time.Hour, "JWT expiration duration")

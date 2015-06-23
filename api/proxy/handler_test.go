@@ -51,6 +51,8 @@ func newTestHandler(keys []jwk.Key, idps []idpdb.Element) *handler {
 		test_frTaSigAlg,
 		"",
 		"SHA256",
+		"Edo-Cooperation",
+		time.Hour,
 		20,
 		time.Minute,
 		1024,
@@ -543,7 +545,9 @@ func TestSession(t *testing.T) {
 
 	now := time.Now()
 	hndl.tokDb.Save(token.New(test_tok, test_tokTag, now.Add(time.Minute), idp.Id(), test_scop), now.Add(time.Minute))
-	hndl.sessDb.Save(session.New(test_sessId, now.Add(time.Minute), test_acntTag, test_tokTag, toTa.Id()), now.Add(time.Minute))
+	hndl.sessDb.Save(session.New(test_sessId, now.Add(time.Minute), toTa.Id(), map[string]*session.Account{
+		test_acntTag: session.NewMainAccount(test_tokTag),
+	}), now.Add(time.Minute))
 
 	reqBody := []byte("request,requester,requestest")
 	r, err := newTestSessionRequest(idp.Id(), toTa.Id(), reqBody)
@@ -632,7 +636,9 @@ func TestRetry(t *testing.T) {
 
 	now := time.Now()
 	hndl.tokDb.Save(token.New(test_tok, test_tokTag, now.Add(time.Minute), idp.Id(), test_scop), now.Add(time.Minute))
-	hndl.sessDb.Save(session.New(test_sessId, now.Add(time.Minute), test_acntTag, test_tokTag, toTa.Id()), now.Add(time.Minute))
+	hndl.sessDb.Save(session.New(test_sessId, now.Add(time.Minute), toTa.Id(), map[string]*session.Account{
+		test_acntTag: session.NewMainAccount(test_tokTag),
+	}), now.Add(time.Minute))
 
 	reqBody := []byte("request,requester,requestest")
 	r, err := newTestSessionRequest(idp.Id(), toTa.Id(), reqBody)
