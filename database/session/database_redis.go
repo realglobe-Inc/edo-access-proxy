@@ -89,3 +89,20 @@ func (this *redisDb) Save(elem *Element, exp time.Time) error {
 
 	return nil
 }
+
+func (this *redisDb) Delete(elem *Element) error {
+	conn := this.pool.Get()
+	defer conn.Close()
+
+	// json.Marshal が非明示的に要素をソートすることに依存している。
+	raw, err := json.Marshal(elem.Accounts())
+	if err != nil {
+		return erro.Wrap(err)
+	}
+	key := elem.ToTa() + string(raw)
+	if _, err := conn.Do("DEL", this.tag+key); err != nil {
+		return erro.Wrap(err)
+	}
+
+	return nil
+}
