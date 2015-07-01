@@ -73,3 +73,19 @@ func (this *memoryDb) Save(elem *Element, exp time.Time) error {
 	this.paramToExp[key] = exp
 	return nil
 }
+
+func (this *memoryDb) Delete(elem *Element) error {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+
+	// json.Marshal が非明示的に要素をソートすることに依存している。
+	raw, err := json.Marshal(elem.Accounts())
+	if err != nil {
+		return erro.Wrap(err)
+	}
+
+	key := elem.ToTa() + string(raw)
+	delete(this.paramToElem, key)
+	delete(this.paramToExp, key)
+	return nil
+}

@@ -215,6 +215,13 @@ func (this *environment) proxyWithSession(w http.ResponseWriter, r *http.Request
 		log.Warn(this.sender, ": Cooperation error: "+coopErr)
 	}
 
+	if err := this.sessDb.Delete(sess); err != nil {
+		log.Warn(erro.Unwrap(err))
+		log.Debug(erro.Wrap(err))
+	}
+
+	log.Debug(this.sender, ": Deleted session "+logutil.Mosaic(sess.Id()))
+
 	if buff != nil {
 		if err := buff.lastRollback(); err != nil {
 			return erro.Wrap(err)

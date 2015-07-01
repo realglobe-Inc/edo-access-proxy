@@ -44,4 +44,12 @@ func testDb(t *testing.T, db Db) {
 		t.Error(elem2)
 		t.Fatal(elem)
 	}
+
+	if err := db.Delete(elem); err != nil {
+		t.Fatal(err)
+	} else if elem2, err := db.GetByParams(elem.ToTa(), elem.Accounts()); err != nil {
+		t.Fatal(err)
+	} else if elem2 != nil {
+		t.Fatal(elem2)
+	}
 }

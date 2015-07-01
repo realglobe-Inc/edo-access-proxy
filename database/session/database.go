@@ -28,4 +28,7 @@ type Db interface {
 	// 保存。
 	// exp: 保存期限。この期間以降は Get できなくて良い。
 	Save(elem *Element, exp time.Time) error
+
+	// 削除。
+	Delete(elem *Element) error
 }
