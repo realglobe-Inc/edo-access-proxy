@@ -41,7 +41,7 @@ import (
 )
 
 func init() {
-	logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	logutil.SetupConsole(logRoot, level.OFF)
 }
 
 func newTestHandler(keys []jwk.Key, idps []idpdb.Element) *handler {
@@ -140,8 +140,8 @@ func (this *testTa) addResponse(status int, header http.Header, body []byte) <-c
 // 転送レスポンスをそのまま返すことの検査。
 func TestSingleNormal(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	idpServ, err := newTestIdProvider([]jwk.Key{test_idpKey})
@@ -275,8 +275,8 @@ func TestSingleNormal(t *testing.T) {
 // X-Access-Proxy-Users ヘッダが無ければ拒否することの検査。
 func TestDenyNoUsers(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	testDenyNoSomething(t, "X-Access-Proxy-Users")
@@ -285,8 +285,8 @@ func TestDenyNoUsers(t *testing.T) {
 // X-Access-Proxy-To ヘッダが無ければ拒否することの検査。
 func TestDenyNoTo(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	testDenyNoSomething(t, "X-Access-Proxy-To")
@@ -294,8 +294,8 @@ func TestDenyNoTo(t *testing.T) {
 
 func testDenyNoSomething(t *testing.T, something string) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	idpServ, err := newTestIdProvider([]jwk.Key{test_idpKey})
@@ -344,8 +344,8 @@ func testDenyNoSomething(t *testing.T, something string) {
 // 主体が指定されていなかったら拒否できることの検査。
 func TestDenyNoMainAccount(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	idpServ, err := newTestIdProvider([]jwk.Key{test_idpKey})
@@ -411,8 +411,8 @@ func TestDenyNoMainAccount(t *testing.T) {
 // 複数の主体が指定されていたら拒否できることの検査。
 func TestDenyTwoMainAccount(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	idpServ, err := newTestIdProvider([]jwk.Key{test_idpKey})
@@ -472,8 +472,8 @@ func TestDenyTwoMainAccount(t *testing.T) {
 // ID プロバイダから拒否されたら拒否できることの検査。
 func TestDenyIfDenied(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	idpServ, err := newTestIdProvider([]jwk.Key{test_idpKey})
@@ -523,8 +523,8 @@ func TestDenyIfDenied(t *testing.T) {
 // セッションを使う場合の正常系。
 func TestSession(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	idpServ, err := newTestIdProvider([]jwk.Key{test_idpKey})
@@ -614,8 +614,8 @@ func TestSession(t *testing.T) {
 // セッションを使ったけど拒否されたので、ID プロバイダ経由でやり直す正常系。
 func TestRetry(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	idpServ, err := newTestIdProvider([]jwk.Key{test_idpKey})
@@ -755,8 +755,8 @@ func TestRetry(t *testing.T) {
 // プロキシ先がおかしかったら拒否できることの検査。
 func TestDenyInvalidTo(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	idpServ, err := newTestIdProvider([]jwk.Key{test_idpKey})
@@ -815,8 +815,8 @@ func TestDenyInvalidTo(t *testing.T) {
 // 転送レスポンスをそのまま返すことの検査。
 func TestMultiNormal(t *testing.T) {
 	// ////////////////////////////////
-	// logutil.SetupConsole("github.com/realglobe-Inc", level.ALL)
-	// defer logutil.SetupConsole("github.com/realglobe-Inc", level.OFF)
+	// logutil.SetupConsole(logRoot, level.ALL)
+	// defer logutil.SetupConsole(logRoot, level.OFF)
 	// ////////////////////////////////
 
 	idpServ, err := newTestIdProvider([]jwk.Key{test_idpKey})

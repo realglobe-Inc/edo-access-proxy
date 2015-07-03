@@ -25,7 +25,6 @@ import (
 	hashutil "github.com/realglobe-Inc/edo-id-provider/hash"
 	idpdb "github.com/realglobe-Inc/edo-idp-selector/database/idp"
 	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
-	requtil "github.com/realglobe-Inc/edo-idp-selector/request"
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
@@ -108,13 +107,13 @@ func (this *handler) httpClient() *http.Client {
 }
 
 func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var sender *requtil.Request
+	var logPref string
 
 	// panic 対策。
 	defer func() {
 		if rcv := recover(); rcv != nil {
 			w.Header().Set(tagX_access_proxy_error, fmt.Sprint(rcv))
-			idperr.RespondJson(w, r, erro.New(rcv), sender)
+			idperr.RespondJson(w, r, erro.New(rcv), logPref)
 			return
 		}
 	}()
@@ -124,17 +123,16 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		defer this.stopper.Unstop()
 	}
 
-	//////////////////////////////
-	server.LogRequest(level.DEBUG, r, this.debug)
-	//////////////////////////////
+	logPref = server.ParseSender(r) + ": "
 
-	sender = requtil.Parse(r, "")
-	log.Info(sender, ": Received proxy request")
-	defer log.Info(sender, ": Handled proxy request")
+	server.LogRequest(level.DEBUG, r, this.debug, logPref)
 
-	if err := (&environment{this, sender}).serve(w, r); err != nil {
+	log.Info(logPref, "Received proxy request")
+	defer log.Info(logPref, "Handled proxy request")
+
+	if err := (&environment{this, logPref}).serve(w, r); err != nil {
 		w.Header().Set(tagX_access_proxy_error, erro.Unwrap(err).Error())
-		idperr.RespondJson(w, r, erro.Wrap(err), sender)
+		idperr.RespondJson(w, r, erro.Wrap(err), logPref)
 		return
 	}
 }
@@ -143,7 +141,7 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type environment struct {
 	*handler
 
-	sender *requtil.Request
+	logPref string
 }
 
 func (this *environment) serve(w http.ResponseWriter, r *http.Request) error {
@@ -152,21 +150,21 @@ func (this *environment) serve(w http.ResponseWriter, r *http.Request) error {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
 	}
 
-	log.Debug(this.sender, ": Parsed proxy request")
+	log.Debug(this.logPref, "Parsed proxy request")
 
 	uri, err := url.Parse(req.toUri())
 	if err != nil {
 		return erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusBadRequest, err))
 	}
 
-	log.Debug(this.sender, ": Destination is "+req.toUri())
+	log.Debug(this.logPref, "Destination is "+req.toUri())
 
 	toTa := req.toTa()
 	if toTa == "" {
 		toTa = uri.Scheme + "://" + uri.Host
 	}
 
-	log.Debug(this.sender, ": To-TA is "+toTa)
+	log.Debug(this.logPref, "To-TA is "+toTa)
 
 	r.URL = uri
 	r.Host = uri.Host
@@ -184,7 +182,7 @@ func (this *environment) serve(w http.ResponseWriter, r *http.Request) error {
 func (this *environment) proxyWithSession(w http.ResponseWriter, r *http.Request, sess *session.Element, acntTag string) (err error) {
 	var buff *buffer
 	if r.Body != nil {
-		buff = newBuffer(r.Body, this.fileThres, tempPrefix)
+		buff = newBuffer(r.Body, this.fileThres, tmpPref)
 		defer buff.dispose()
 		r.Body = buff
 	}
@@ -194,10 +192,10 @@ func (this *environment) proxyWithSession(w http.ResponseWriter, r *http.Request
 		Value: sess.Id(),
 	})
 
-	log.Debug(this.sender, ": Proxy with session "+logutil.Mosaic(sess.Id()))
+	log.Debug(this.logPref, "Proxy with session "+logutil.Mosaic(sess.Id()))
 
 	r.RequestURI = ""
-	server.LogRequest(level.DEBUG, r, this.debug)
+	server.LogRequest(level.DEBUG, r, this.debug, this.logPref)
 	resp, err := this.httpClient().Do(r)
 	if err != nil {
 		if isDestinationError(err) {
@@ -207,12 +205,12 @@ func (this *environment) proxyWithSession(w http.ResponseWriter, r *http.Request
 		}
 	}
 	defer resp.Body.Close()
-	server.LogResponse(level.DEBUG, resp, this.debug)
+	server.LogResponse(level.DEBUG, resp, this.debug, this.logPref)
 
 	if coopErr := resp.Header.Get(tagX_edo_cooperation_error); coopErr == "" {
 		return copyResponse(w, resp)
 	} else {
-		log.Warn(this.sender, ": Cooperation error: "+coopErr)
+		log.Warn(this.logPref, "Cooperation error: "+coopErr)
 	}
 
 	if err := this.sessDb.Delete(sess); err != nil {
@@ -220,7 +218,7 @@ func (this *environment) proxyWithSession(w http.ResponseWriter, r *http.Request
 		log.Debug(erro.Wrap(err))
 	}
 
-	log.Debug(this.sender, ": Deleted session "+logutil.Mosaic(sess.Id()))
+	log.Debug(this.logPref, "Deleted session "+logutil.Mosaic(sess.Id()))
 
 	if buff != nil {
 		if err := buff.lastRollback(); err != nil {
@@ -243,14 +241,14 @@ func (this *environment) proxyThroughIdProvider(w http.ResponseWriter, r *http.R
 		return erro.Wrap(idperr.New(idperr.Invalid_request, "access token "+acnts[acntTag].TokenTag()+" expired", http.StatusBadRequest, err))
 	}
 
-	log.Debug(this.sender, ": Access token "+logutil.Mosaic(tok.Tag())+" is exist")
+	log.Debug(this.logPref, "Access token "+logutil.Mosaic(tok.Tag())+" is exist")
 
 	idps, tagToAcnt, idpToTagToAcnt, err := this.getIdpAndAccountMaps(this.idpDb, tok.IdProvider(), acnts)
 	if err != nil {
 		return erro.Wrap(err)
 	}
 
-	log.Debug(this.sender, ": ID provider checks are passed")
+	log.Debug(this.logPref, "ID provider checks are passed")
 
 	keys, err := this.keyDb.Get()
 	if err != nil {
@@ -262,7 +260,7 @@ func (this *environment) proxyThroughIdProvider(w http.ResponseWriter, r *http.R
 		return erro.Wrap(err)
 	}
 
-	log.Debug(this.sender, ": Got main cooperation code from "+tok.IdProvider())
+	log.Debug(this.logPref, "Got main cooperation code from "+tok.IdProvider())
 
 	codToks := []string{codTok}
 	for idpId, subTagToAcnt := range idpToTagToAcnt {
@@ -271,7 +269,7 @@ func (this *environment) proxyThroughIdProvider(w http.ResponseWriter, r *http.R
 			return erro.Wrap(err)
 		}
 
-		log.Debug(this.sender, ": Got sub cooperation code from "+idpId)
+		log.Debug(this.logPref, "Got sub cooperation code from "+idpId)
 
 		codToks = append(codToks, codTok)
 	}
@@ -280,10 +278,10 @@ func (this *environment) proxyThroughIdProvider(w http.ResponseWriter, r *http.R
 		r.Header.Add(tagX_edo_code_tokens, codTok)
 	}
 
-	log.Debug(this.sender, ": Proxy through ID provider")
+	log.Debug(this.logPref, "Proxy through ID provider")
 
 	r.RequestURI = ""
-	server.LogRequest(level.DEBUG, r, this.debug)
+	server.LogRequest(level.DEBUG, r, this.debug, this.logPref)
 	resp, err := this.httpClient().Do(r)
 	if err != nil {
 		if isDestinationError(err) {
@@ -293,7 +291,7 @@ func (this *environment) proxyThroughIdProvider(w http.ResponseWriter, r *http.R
 		}
 	}
 	defer resp.Body.Close()
-	server.LogResponse(level.DEBUG, resp, this.debug)
+	server.LogResponse(level.DEBUG, resp, this.debug, this.logPref)
 
 	for _, cook := range resp.Cookies() {
 		if cook.Name != this.sessLabel {
@@ -309,7 +307,7 @@ func (this *environment) proxyThroughIdProvider(w http.ResponseWriter, r *http.R
 			log.Warn(erro.Unwrap(err))
 			log.Debug(erro.Wrap(err))
 		} else {
-			log.Debug(this.sender, ": Saved session "+logutil.Mosaic(sess.Id()))
+			log.Debug(this.logPref, "Saved session "+logutil.Mosaic(sess.Id()))
 		}
 	}
 
@@ -452,15 +450,15 @@ func (this *environment) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa
 		return "", "", erro.Wrap(err)
 	}
 	r.Header.Set(tagContent_type, contTypeJson)
-	log.Debug(this.sender, ": Made main cooperation-from request")
+	log.Debug(this.logPref, "Made main cooperation-from request")
 
-	server.LogRequest(level.DEBUG, r, this.debug)
+	server.LogRequest(level.DEBUG, r, this.debug, this.logPref)
 	resp, err := this.httpClient().Do(r)
 	if err != nil {
 		return "", "", erro.Wrap(err)
 	}
 	defer resp.Body.Close()
-	server.LogResponse(level.DEBUG, resp, this.debug)
+	server.LogResponse(level.DEBUG, resp, this.debug, this.logPref)
 
 	if resp.StatusCode != http.StatusOK {
 		return "", "", erro.New("invalid state ", resp.StatusCode)
@@ -526,15 +524,15 @@ func (this *environment) getSubCoopCode(idp idpdb.Element, keys []jwk.Key, ref s
 		return "", erro.Wrap(err)
 	}
 	r.Header.Set(tagContent_type, contTypeJson)
-	log.Debug(this.sender, ": Made sub cooperation-from request")
+	log.Debug(this.logPref, "Made sub cooperation-from request")
 
-	server.LogRequest(level.DEBUG, r, this.debug)
+	server.LogRequest(level.DEBUG, r, this.debug, this.logPref)
 	resp, err := this.httpClient().Do(r)
 	if err != nil {
 		return "", erro.Wrap(err)
 	}
 	defer resp.Body.Close()
-	server.LogResponse(level.DEBUG, resp, this.debug)
+	server.LogResponse(level.DEBUG, resp, this.debug, this.logPref)
 
 	if resp.StatusCode != http.StatusOK {
 		return "", erro.New("invalid state ", resp.StatusCode)

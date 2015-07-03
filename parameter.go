@@ -114,6 +114,8 @@ type parameters struct {
 	// 転送先の SSL 証明書を検証しない。
 	noVeri bool
 	debug  bool
+	// テスト用。
+	shutCh chan struct{}
 }
 
 func parseParameters(args ...string) (param *parameters, err error) {
@@ -225,3 +227,7 @@ func (param *parameters) SocketType() string   { return param.socType }
 func (param *parameters) SocketPort() int      { return param.socPort }
 func (param *parameters) SocketPath() string   { return param.socPath }
 func (param *parameters) ProtocolType() string { return param.protType }
+
+// テスト用。
+// 使うときは手動で param.shutCh = make(chan struct{}, 5) する。
+func (param *parameters) ShutdownChannel() chan struct{} { return param.shutCh }

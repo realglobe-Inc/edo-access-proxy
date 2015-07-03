@@ -58,5 +58,5 @@ const (
 
 	contTypeJson = "application/json"
 
-	tempPrefix = "edo-access-proxy"
+	tmpPref = "edo-access-proxy"
 )
