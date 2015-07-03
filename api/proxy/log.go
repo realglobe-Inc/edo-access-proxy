@@ -18,4 +18,6 @@ import (
 	"github.com/realglobe-Inc/go-lib/rglog"
 )
 
-var log = rglog.Logger("github.com/realglobe-Inc/edo-access-proxy/api/proxy")
+const logRoot = "github.com/realglobe-Inc"
+
+var log = rglog.Logger(logRoot + "/edo-access-proxy/api/proxy")
