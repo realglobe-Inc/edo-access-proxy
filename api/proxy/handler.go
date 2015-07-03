@@ -184,7 +184,7 @@ func (this *environment) serve(w http.ResponseWriter, r *http.Request) error {
 func (this *environment) proxyWithSession(w http.ResponseWriter, r *http.Request, sess *session.Element, acntTag string) (err error) {
 	var buff *buffer
 	if r.Body != nil {
-		buff = newBuffer(r.Body, this.fileThres, tempPrefix)
+		buff = newBuffer(r.Body, this.fileThres, tmpPref)
 		defer buff.dispose()
 		r.Body = buff
 	}
