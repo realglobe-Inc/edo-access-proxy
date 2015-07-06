@@ -16,6 +16,11 @@ package main
 
 import (
 	"crypto/tls"
+	"net"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/realglobe-Inc/edo-access-proxy/api/proxy"
 	"github.com/realglobe-Inc/edo-access-proxy/database/session"
 	"github.com/realglobe-Inc/edo-auth/database/token"
@@ -29,10 +34,6 @@ import (
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog"
-	"net"
-	"net/http"
-	"os"
-	"time"
 )
 
 func main() {

@@ -17,12 +17,13 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"io"
+	"net/http"
+
 	idpdb "github.com/realglobe-Inc/edo-idp-selector/database/idp"
 	"github.com/realglobe-Inc/edo-lib/jwk"
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	"github.com/realglobe-Inc/go-lib/erro"
-	"io"
-	"net/http"
 )
 
 const (

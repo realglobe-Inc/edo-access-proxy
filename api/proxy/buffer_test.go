@@ -16,11 +16,12 @@ package proxy
 
 import (
 	"bytes"
-	"github.com/realglobe-Inc/edo-lib/prand"
 	"io"
 	"io/ioutil"
 	"testing"
 	"time"
+
+	"github.com/realglobe-Inc/edo-lib/prand"
 )
 
 // メモリだけでテスト。

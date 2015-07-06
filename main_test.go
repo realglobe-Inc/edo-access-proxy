@@ -17,6 +17,14 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"testing"
+	"time"
+
 	"github.com/realglobe-Inc/edo-auth/database/token"
 	idpdb "github.com/realglobe-Inc/edo-idp-selector/database/idp"
 	tadb "github.com/realglobe-Inc/edo-idp-selector/database/ta"
@@ -28,13 +36,6 @@ import (
 	"github.com/realglobe-Inc/go-lib/rglog/level"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"path/filepath"
-	"strconv"
-	"testing"
-	"time"
 )
 
 func init() {

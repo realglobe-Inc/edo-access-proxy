@@ -15,13 +15,14 @@
 package main
 
 import (
-	logutil "github.com/realglobe-Inc/edo-lib/log"
-	"github.com/realglobe-Inc/edo-lib/server"
-	"github.com/realglobe-Inc/go-lib/erro"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"testing"
+
+	logutil "github.com/realglobe-Inc/edo-lib/log"
+	"github.com/realglobe-Inc/edo-lib/server"
+	"github.com/realglobe-Inc/go-lib/erro"
 )
 
 func newTestParameter() (*parameters, error) {

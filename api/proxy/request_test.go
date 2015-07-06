@@ -16,11 +16,12 @@ package proxy
 
 import (
 	"fmt"
-	"github.com/realglobe-Inc/edo-access-proxy/database/session"
-	"github.com/realglobe-Inc/edo-lib/base64url"
 	"net/http"
 	"reflect"
 	"testing"
+
+	"github.com/realglobe-Inc/edo-access-proxy/database/session"
+	"github.com/realglobe-Inc/edo-lib/base64url"
 )
 
 func TestRequest(t *testing.T) {
