@@ -126,9 +126,6 @@ func serve(param *parameters) error {
 	// アクセストークン。
 	var tokDb token.Db
 	switch param.tokDbType {
-	case "memory":
-		tokDb = token.NewMemoryDb()
-		log.Info("Save access tokens in memory")
 	case "redis":
 		tokDb = token.NewRedisDb(redPools.Get(param.tokDbAddr), param.tokDbTag)
 		log.Info("Save access tokens in redis " + param.tokDbAddr + ": " + param.tokDbTag)
