@@ -16,10 +16,11 @@ package proxy
 
 import (
 	"encoding/json"
+	"net/http"
+
 	"github.com/realglobe-Inc/edo-access-proxy/database/session"
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	"github.com/realglobe-Inc/go-lib/erro"
-	"net/http"
 )
 
 type request struct {

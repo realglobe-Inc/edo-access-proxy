@@ -16,9 +16,10 @@ package session
 
 import (
 	"encoding/json"
-	"github.com/realglobe-Inc/go-lib/erro"
 	"sync"
 	"time"
+
+	"github.com/realglobe-Inc/go-lib/erro"
 )
 
 // メモリ上のセッションの格納庫。

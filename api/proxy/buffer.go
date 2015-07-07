@@ -17,10 +17,11 @@ package proxy
 import (
 	"bufio"
 	"bytes"
-	"github.com/realglobe-Inc/go-lib/erro"
 	"io"
 	"io/ioutil"
 	"os"
+
+	"github.com/realglobe-Inc/go-lib/erro"
 )
 
 // ボディを読みながら保存しとく機構

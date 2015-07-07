@@ -16,6 +16,7 @@ package session
 
 import (
 	"encoding/json"
+
 	"github.com/realglobe-Inc/go-lib/erro"
 )
 

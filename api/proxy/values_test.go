@@ -17,6 +17,10 @@ package proxy
 import (
 	"bytes"
 	"encoding/json"
+	"io"
+	"net/http"
+	"time"
+
 	hashutil "github.com/realglobe-Inc/edo-id-provider/hash"
 	idpdb "github.com/realglobe-Inc/edo-idp-selector/database/idp"
 	"github.com/realglobe-Inc/edo-lib/jwk"
@@ -24,9 +28,6 @@ import (
 	"github.com/realglobe-Inc/edo-lib/jwt/audience"
 	"github.com/realglobe-Inc/edo-lib/strset/strsetutil"
 	"github.com/realglobe-Inc/go-lib/erro"
-	"io"
-	"net/http"
-	"time"
 )
 
 const (

@@ -17,13 +17,14 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/realglobe-Inc/go-lib/erro"
-	"github.com/realglobe-Inc/go-lib/rglog/level"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/realglobe-Inc/go-lib/erro"
+	"github.com/realglobe-Inc/go-lib/rglog/level"
 )
 
 type parameters struct {
@@ -223,10 +224,8 @@ func (param *parameters) LogFileNumber() int        { return param.logNum }
 func (param *parameters) LogFluentdAddress() string { return param.logAddr }
 func (param *parameters) LogFluentdTag() string     { return param.logTag }
 
-func (param *parameters) SocketType() string   { return param.socType }
-func (param *parameters) SocketPort() int      { return param.socPort }
-func (param *parameters) SocketPath() string   { return param.socPath }
-func (param *parameters) ProtocolType() string { return param.protType }
+func (param *parameters) SocketPort() int    { return param.socPort }
+func (param *parameters) SocketPath() string { return param.socPath }
 
 // テスト用。
 // 使うときは手動で param.shutCh = make(chan struct{}, 5) する。

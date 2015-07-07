@@ -17,6 +17,13 @@ package proxy
 import (
 	"bytes"
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/realglobe-Inc/edo-access-proxy/database/session"
 	"github.com/realglobe-Inc/edo-auth/database/token"
 	keydb "github.com/realglobe-Inc/edo-id-provider/database/key"
@@ -32,12 +39,6 @@ import (
 	"github.com/realglobe-Inc/edo-lib/test"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog/level"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
-	"reflect"
-	"testing"
-	"time"
 )
 
 func init() {

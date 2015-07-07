@@ -16,6 +16,11 @@ package main
 
 import (
 	"crypto/tls"
+	"net"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/realglobe-Inc/edo-access-proxy/api/proxy"
 	"github.com/realglobe-Inc/edo-access-proxy/database/session"
 	"github.com/realglobe-Inc/edo-auth/database/token"
@@ -29,10 +34,6 @@ import (
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog"
-	"net"
-	"net/http"
-	"os"
-	"time"
 )
 
 func main() {
@@ -126,9 +127,6 @@ func serve(param *parameters) error {
 	// アクセストークン。
 	var tokDb token.Db
 	switch param.tokDbType {
-	case "memory":
-		tokDb = token.NewMemoryDb()
-		log.Info("Save access tokens in memory")
 	case "redis":
 		tokDb = token.NewRedisDb(redPools.Get(param.tokDbAddr), param.tokDbTag)
 		log.Info("Save access tokens in redis " + param.tokDbAddr + ": " + param.tokDbTag)
@@ -214,5 +212,5 @@ func serve(param *parameters) error {
 			stopper.Wait()
 		}
 	}()
-	return server.Serve(param, mux)
+	return server.Serve(mux, param.socType, param.protType, param)
 }

@@ -15,11 +15,12 @@
 package proxy
 
 import (
-	"github.com/realglobe-Inc/go-lib/erro"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
+
+	"github.com/realglobe-Inc/go-lib/erro"
 )
 
 // プロキシ先がおかしいかどうか。
