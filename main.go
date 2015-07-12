@@ -15,20 +15,21 @@
 package main
 
 import (
-	"encoding/json"
-	"github.com/realglobe-Inc/edo-lib/crypto"
+	"crypto/tls"
+	"net"
+	"net/http"
+	"os"
+	"time"
+
+	"github.com/realglobe-Inc/edo-access-proxy/api/proxy"
+	"github.com/realglobe-Inc/edo-access-proxy/database/session"
+	keydb "github.com/realglobe-Inc/edo-id-provider/database/key"
+	idperr "github.com/realglobe-Inc/edo-idp-selector/error"
 	"github.com/realglobe-Inc/edo-lib/driver"
-	jsonutil "github.com/realglobe-Inc/edo-lib/json"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog"
-	"github.com/realglobe-Inc/go-lib/rglog/level"
-	"net/http"
-	"net/url"
-	"os"
-	"strconv"
-	"strings"
 )
 
 func main() {
@@ -40,152 +41,128 @@ func main() {
 	}()
 	defer rglog.Flush()
 
-	logutil.InitConsole("github.com/realglobe-Inc")
+	logutil.InitConsole(logRoot)
 
 	param, err := parseParameters(os.Args...)
 	if err != nil {
 		log.Err(erro.Unwrap(err))
-		log.Debug(err)
+		log.Debug(erro.Wrap(err))
 		exitCode = 1
 		return
 	}
 
-	logutil.SetupConsole("github.com/realglobe-Inc", param.consLv)
-	if err := logutil.Setup("github.com/realglobe-Inc", param.logType, param.logLv, param); err != nil {
+	logutil.SetupConsole(logRoot, param.consLv)
+	if err := logutil.Setup(logRoot, param.logType, param.logLv, param); err != nil {
 		log.Err(erro.Unwrap(err))
-		log.Debug(err)
+		log.Debug(erro.Wrap(err))
 		exitCode = 1
 		return
 	}
 
-	if err := mainCore(param); err != nil {
-		err = erro.Wrap(err)
+	if err := serve(param); err != nil {
 		log.Err(erro.Unwrap(err))
-		log.Debug(err)
+		log.Debug(erro.Wrap(err))
 		exitCode = 1
 		return
 	}
 
-	log.Info("Shut down.")
+	log.Info("Shut down")
 }
 
-// system を準備する。
-func mainCore(param *parameters) error {
+func serve(param *parameters) error {
 
-	var priKeyCont driver.KeyValueStore
-	switch param.priKeyContType {
+	// バックエンドの準備。
+
+	stopper := server.NewStopper()
+
+	redPools := driver.NewRedisPoolSet(param.redTimeout, param.redPoolSize, param.redPoolExpIn)
+	defer redPools.Close()
+
+	// 鍵。
+	var keyDb keydb.Db
+	switch param.keyDbType {
 	case "file":
-		priKeyCont = driver.NewFileListedKeyValueStore(param.priKeyContPath,
-			func(key string) string {
-				return url.QueryEscape(key) + ".key"
-			},
-			func(path string) string {
-				if !strings.HasSuffix(path, ".key") {
-					return ""
-				}
-				key, _ := url.QueryUnescape(path[:len(path)-len(".key")])
-				return key
-			},
-			nil,
-			func(data []byte) (interface{}, error) {
-				return crypto.ParsePem(data)
-			},
-			param.caStaleDur, param.caExpiDur)
-		log.Info("Use file private key container " + param.priKeyContPath + ".")
+		keyDb = keydb.NewFileDb(param.keyDbPath)
+		log.Info("Use keys in directory " + param.keyDbPath)
+	case "redis":
+		keyDb = keydb.NewRedisCache(keydb.NewFileDb(param.keyDbPath), redPools.Get(param.keyDbAddr), param.keyDbTag+"."+param.selfId, param.keyDbExpIn)
+		log.Info("Use keys in directory " + param.keyDbPath + " with redis " + param.keyDbAddr + "<" + param.keyDbTag + "." + param.selfId + ">")
 	default:
-		return erro.New("invalid code container type " + param.priKeyContType + ".")
+		return erro.New("invalid key DB type " + param.keyDbType)
 	}
 
-	sys := newSystem(
-		priKeyCont,
-		param.taId,
-		param.hashName,
-		param.sessMargin,
-		param.cliExpiDur,
-		param.threSize,
-		param.noVerify,
-	)
-	defer sys.close()
-	return serve(sys, param.socType, param.socPath, param.socPort, param.protType, nil)
-}
-
-// 振り分ける。
-const (
-	proxyApiPath = "/"
-	okPath       = "/ok"
-)
-
-func serve(sys *system, socType, socPath string, socPort int, protType string, shutCh chan struct{}) error {
-	routes := map[string]server.HandlerFunc{
-		proxyApiPath: func(w http.ResponseWriter, r *http.Request) error {
-			return proxyApi(sys, w, r)
-		},
-		okPath: func(w http.ResponseWriter, r *http.Request) error {
-			return nil
-		},
+	// セッション。
+	var sessDb session.Db
+	switch param.sessDbType {
+	case "memory":
+		sessDb = session.NewMemoryDb()
+		log.Info("Save sessions in memory")
+	case "redis":
+		sessDb = session.NewRedisDb(redPools.Get(param.sessDbAddr), param.sessDbTag)
+		log.Info("Save sessions in redis " + param.sessDbAddr + "<" + param.sessDbTag + ">")
+	default:
+		return erro.New("invalid session DB type " + param.sessDbType)
 	}
-	return server.TerminableServe(socType, socPath, socPort, protType, routes, shutCh, wrapper)
-}
 
-func wrapper(hndl server.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// panic時にプロセス終了しないようにrecoverする
-		defer func() {
-			if rcv := recover(); rcv != nil {
-				responseError(w, erro.New(rcv))
-				return
-			}
-		}()
+	var conn *http.Client
+	if param.noVeri {
+		// http.DefaultTransport を参考にした。
+		conn = &http.Client{Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			Dial: (&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).Dial,
+			TLSHandshakeTimeout: 10 * time.Second,
+			TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+		}}
+	} else {
+		conn = http.DefaultClient
+	}
 
-		//////////////////////////////
-		server.LogRequest(level.DEBUG, r, true)
-		//////////////////////////////
+	// バックエンドの準備完了。
 
-		if err := hndl(w, r); err != nil {
-			responseError(w, erro.Wrap(err))
-			return
+	if param.debug {
+		idperr.Debug = true
+	}
+
+	mux := http.NewServeMux()
+	routes := map[string]bool{}
+	mux.HandleFunc(param.pathOk, idperr.WrapApi(stopper, func(w http.ResponseWriter, r *http.Request) error {
+		return nil
+	}))
+	routes[param.pathOk] = true
+	mux.Handle(param.pathProx, proxy.New(
+		stopper,
+		param.selfId,
+		param.hashAlg,
+		param.sessLabel,
+		param.sessDbExpIn,
+		param.fileThres,
+		param.fileMax,
+		param.filePref,
+		keyDb,
+		sessDb,
+		conn,
+		param.debug,
+	))
+	routes[param.pathProx] = true
+
+	if !routes["/"] {
+		mux.HandleFunc("/", idperr.WrapApi(stopper, func(w http.ResponseWriter, r *http.Request) error {
+			return erro.Wrap(idperr.New(idperr.Invalid_request, "invalid endpoint", http.StatusNotFound, nil))
+		}))
+	}
+
+	// サーバー設定完了。
+
+	defer func() {
+		// 処理の終了待ち。
+		stopper.Lock()
+		defer stopper.Unlock()
+		for stopper.Stopped() {
+			stopper.Wait()
 		}
-	}
-}
-
-func responseError(w http.ResponseWriter, err error) {
-	var v struct {
-		Stat int    `json:"status"`
-		Msg  string `json:"message"`
-	}
-	switch e := erro.Unwrap(err).(type) {
-	case *server.StatusError:
-		log.Err(e.Message())
-		log.Debug(e)
-		v.Stat = e.Status()
-		v.Msg = e.Message()
-	default:
-		log.Err(e)
-		log.Debug(err)
-		v.Stat = http.StatusInternalServerError
-		v.Msg = e.Error()
-	}
-
-	buff, err := json.Marshal(&v)
-	if err != nil {
-		err = erro.Wrap(err)
-		log.Err(erro.Unwrap(err))
-		log.Debug(err)
-		// 最後の手段。たぶん正しい変換。
-		buff = []byte(`{status="` + jsonutil.StringEscape(strconv.Itoa(v.Stat)) +
-			`",message="` + jsonutil.StringEscape(v.Msg) + `"}`)
-	}
-
-	// エラー起源を追加。
-	w.Header().Set(headerAccProxErr, v.Msg)
-
-	w.Header().Set("Content-Type", server.ContentTypeJson)
-	w.Header().Set("Content-Length", strconv.Itoa(len(buff)))
-	w.WriteHeader(v.Stat)
-	if _, err := w.Write(buff); err != nil {
-		err = erro.Wrap(err)
-		log.Err(erro.Unwrap(err))
-		log.Debug(err)
-	}
-	return
+	}()
+	return server.Serve(mux, param.socType, param.protType, param)
 }

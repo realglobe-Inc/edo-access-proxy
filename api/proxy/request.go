@@ -12,12 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package proxy
 
 import (
-	"github.com/realglobe-Inc/go-lib/rglog"
+	"net/http"
+	"net/url"
+
+	"github.com/realglobe-Inc/go-lib/erro"
 )
 
-const logRoot = "github.com/realglobe-Inc"
+type request struct {
+	toUri_ *url.URL
+}
 
-var log = rglog.Logger("github.com/realglobe-Inc/edo-access-proxy")
+func parseRequest(r *http.Request) (*request, error) {
+	toUriStr := r.Header.Get(tagX_edo_access_proxy_uri)
+	if toUriStr == "" { // url.Parse は空文字列ではエラーにならない。
+		return nil, erro.New("no destination uri")
+	}
+	r.Header.Del(tagX_edo_access_proxy_uri)
+	toUri, err := url.Parse(toUriStr)
+	if err != nil {
+		return nil, erro.Wrap(err)
+	}
+	return &request{
+		toUri,
+	}, nil
+}
+
+func (req *request) toUri() *url.URL {
+	return req.toUri_
+}

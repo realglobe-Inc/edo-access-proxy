@@ -12,12 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package session
 
 import (
-	"github.com/realglobe-Inc/go-lib/rglog"
+	"testing"
+
+	"github.com/realglobe-Inc/edo-lib/test"
 )
 
-const logRoot = "github.com/realglobe-Inc"
+const (
+	test_tag = "edo-test"
+)
 
-var log = rglog.Logger("github.com/realglobe-Inc/edo-access-proxy")
+func TestRedisDb(t *testing.T) {
+	red, err := test.NewRedisServer()
+	if err != nil {
+		t.Fatal(err)
+	} else if red == nil {
+		t.SkipNow()
+	}
+	defer red.Close()
+
+	testDb(t, NewRedisDb(red.Pool(), test_tag))
+}

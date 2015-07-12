@@ -12,12 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package proxy
 
 import (
 	"github.com/realglobe-Inc/go-lib/rglog"
 )
 
-const logRoot = "github.com/realglobe-Inc"
-
-var log = rglog.Logger("github.com/realglobe-Inc/edo-access-proxy")
+var log = rglog.Logger("github.com/realglobe-Inc/edo-access-proxy/api/proxy")

@@ -17,67 +17,82 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/realglobe-Inc/go-lib/erro"
-	"github.com/realglobe-Inc/go-lib/rglog/level"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/realglobe-Inc/go-lib/erro"
+	"github.com/realglobe-Inc/go-lib/rglog/level"
 )
 
 type parameters struct {
-	// 画面表示ログ。
+	// 画面ログ。
 	consLv level.Level
-
-	// 追加ログ種別。
+	// 追加ログ。
 	logType string
-	// 追加ログ表示重要度。
-	logLv level.Level
-	// ログファイルパス。
+	logLv   level.Level
+	// ファイルログ。
 	logPath string
-	// fluentd アドレス。
-	fluAddr string
-	// fluentd 用タグ。
-	fluTag string
+	logSize int64
+	logNum  int
+	// fluentd ログ。
+	logAddr string
+	logTag  string
 
-	// 秘密鍵置き場。
-	priKeyContType string
-	// ファイルベース秘密鍵置き場。
-	priKeyContPath string
-
-	// ソケット種別。
+	// ソケット。
 	socType string
 	// UNIX ソケット。
 	socPath string
 	// TCP ソケット。
 	socPort int
-
-	// プロトコル種別。
+	// プロトコル。
 	protType string
 
-	// キャッシュを最新とみなす期間。
-	caStaleDur time.Duration
-	// キャッシュを廃棄するまでの期間。
-	caExpiDur time.Duration
+	// IdP としての ID。
+	selfId string
+	// related_users 用ハッシュ関数。
+	hashAlg string
 
-	// 称する TA の ID。
-	taId string
+	// URI
+	pathOk   string
+	pathProx string
 
-	// 署名に使うハッシュ関数。
-	hashName string
+	// セッション。
+	sessLabel   string
+	sessDbExpIn time.Duration
+	// ボディをバッファするメモリサイズ。
+	fileThres int
+	fileMax   int
+	filePref  string
 
-	// 有効期限ギリギリのセッションを避けるための遊び。
-	sessMargin time.Duration
+	// バックエンドの指定。
 
-	// 同一ホスト用の http.Client の保持期間。
-	cliExpiDur time.Duration
+	// redis
+	redTimeout   time.Duration
+	redPoolSize  int
+	redPoolExpIn time.Duration
 
-	// セッションを事前に検査するボディサイズの下限。
-	threSize int
+	// 鍵 DB。
+	keyDbType  string
+	keyDbPath  string
+	keyDbAddr  string
+	keyDbTag   string
+	keyDbExpIn time.Duration
 
-	// SSL 証明書を検証しない。
-	noVerify bool
+	// セッション DB。
+	sessDbType string
+	sessDbAddr string
+	sessDbTag  string
+
+	// その他のオプション。
+
+	// 転送先の SSL 証明書を検証しない。
+	noVeri bool
+	debug  bool
+	// テスト用。
+	shutCh chan struct{}
 }
 
 func parseParameters(args ...string) (param *parameters, err error) {
@@ -94,34 +109,51 @@ func parseParameters(args ...string) (param *parameters, err error) {
 
 	param = &parameters{}
 
-	flags.Var(level.Var(&param.consLv, level.INFO), "consLv", "Console log level.")
-	flags.StringVar(&param.logType, "logType", "", "Extra log type.")
-	flags.Var(level.Var(&param.logLv, level.ALL), "logLv", "Extra log level.")
-	flags.StringVar(&param.logPath, "logPath", filepath.Join(filepath.Dir(os.Args[0]), "log", label+".log"), "File log path.")
-	flags.StringVar(&param.fluAddr, "fluAddr", "localhost:24224", "fluentd address.")
-	flags.StringVar(&param.fluTag, "fluTag", "edo."+label, "fluentd tag.")
+	flags.Var(level.Var(&param.consLv, level.INFO), "consLv", "Console log level")
+	flags.StringVar(&param.logType, "logType", "", "Extra log: Type")
+	flags.Var(level.Var(&param.logLv, level.ALL), "logLv", "Extra log: Level")
+	flags.StringVar(&param.logPath, "logPath", filepath.Join(filepath.Dir(os.Args[0]), "log", label+".log"), "Extra log: File path")
+	flags.Int64Var(&param.logSize, "logSize", 10*(1<<20) /* 10 MB */, "Extra log: File size limit")
+	flags.IntVar(&param.logNum, "logNum", 10, "Extra log: File number limit")
+	flags.StringVar(&param.logAddr, "logAddr", "localhost:24224", "Extra log: Fluentd address")
+	flags.StringVar(&param.logTag, "logTag", label, "Extra log: Fluentd tag")
 
-	flags.StringVar(&param.priKeyContType, "priKeyContType", "file", "Private key container type.")
-	flags.StringVar(&param.priKeyContPath, "priKeyContPath", filepath.Join(filepath.Dir(os.Args[0]), "private_keys"), "Private key container directory.")
+	flags.StringVar(&param.socType, "socType", "tcp", "Socket type")
+	flags.StringVar(&param.socPath, "socPath", filepath.Join(filepath.Dir(os.Args[0]), "run", label+".soc"), "Unix socket path")
+	flags.IntVar(&param.socPort, "socPort", 1605, "TCP socket port")
+	flags.StringVar(&param.protType, "protType", "http", "Protocol type")
 
-	flags.StringVar(&param.socType, "socType", "tcp", "Socket type.")
-	flags.StringVar(&param.socPath, "socPath", filepath.Join(filepath.Dir(os.Args[0]), "run", label+".soc"), "UNIX socket path.")
-	flags.IntVar(&param.socPort, "socPort", 16050, "TCP socket port.")
-	flags.StringVar(&param.protType, "protType", "http", "Protocol type.")
+	flags.StringVar(&param.selfId, "selfId", "https://ta.example.org", "TA ID")
+	flags.StringVar(&param.hashAlg, "hashAlg", "SHA256", "Hash algorithm")
 
-	flags.DurationVar(&param.caStaleDur, "caStaleDur", 5*time.Minute, "Cache fresh duration.")
-	flags.DurationVar(&param.caExpiDur, "caExpiDur", 30*time.Minute, "Cache expiration duration.")
+	flags.StringVar(&param.pathOk, "pathOk", "/ok", "OK URI")
+	flags.StringVar(&param.pathProx, "pathProx", "/", "Proxy URI")
 
-	flags.StringVar(&param.taId, "taId", "", "Default TA ID.")
-	flags.StringVar(&param.hashName, "hashName", "sha256", "Sign hash type.")
+	flags.StringVar(&param.sessLabel, "sessLabel", "X-Edo-Auth-Ta-Session", "Session label")
+	flags.DurationVar(&param.sessDbExpIn, "sessDbExpIn", 14*24*time.Hour, "Session keep duration")
+	flags.IntVar(&param.fileThres, "fileThres", 1<<17 /* 128 KB */, "Threshold to use file buffer")
+	flags.IntVar(&param.fileMax, "fileMax", 1<<22 /* 4 MB */, "Max file buffer size")
+	flags.StringVar(&param.filePref, "filePref", "edo-access-proxy", "Filename prefix for file buffer")
 
-	flags.DurationVar(&param.sessMargin, "sessMargin", time.Minute, "Margin for session expiration duration.")
-	flags.DurationVar(&param.cliExpiDur, "cliExpiDur", 10*time.Minute, "Client expiration duration.")
-	flags.IntVar(&param.threSize, "threSize", 8192, "Maximum byte size of request body for skipping session check.")
-	flags.BoolVar(&param.noVerify, "noVerify", false, "Skipping SSL verification.")
+	flags.DurationVar(&param.redTimeout, "redTimeout", 30*time.Second, "redis timeout duration")
+	flags.IntVar(&param.redPoolSize, "redPoolSize", 10, "redis pool size")
+	flags.DurationVar(&param.redPoolExpIn, "redPoolExpIn", time.Minute, "redis connection keep duration")
+
+	flags.StringVar(&param.keyDbType, "keyDbType", "redis", "Key DB type")
+	flags.StringVar(&param.keyDbPath, "keyDbPath", filepath.Join(filepath.Dir(os.Args[0]), "key"), "Key DB directory")
+	flags.StringVar(&param.keyDbAddr, "keyDbAddr", "localhost:6379", "Key DB address")
+	flags.StringVar(&param.keyDbTag, "keyDbTag", "key", "Key DB tag")
+	flags.DurationVar(&param.keyDbExpIn, "keyDbExpIn", 5*time.Minute, "Key DB expiration duration")
+
+	flags.StringVar(&param.sessDbType, "sessDbType", "redis", "Session DB type")
+	flags.StringVar(&param.sessDbAddr, "sessDbAddr", "localhost:6379", "Session DB address")
+	flags.StringVar(&param.sessDbTag, "sessDbTag", "session", "Session DB tag")
+
+	flags.BoolVar(&param.noVeri, "noVeri", false, "Skip SSL verification")
+	flags.BoolVar(&param.debug, "debug", false, "Debug mode")
 
 	var config string
-	flags.StringVar(&config, "f", "", "Config file path.")
+	flags.StringVar(&config, "c", "", "Config file path")
 
 	// 実行引数を読んで、設定ファイルを指定させてから、
 	// 設定ファイルを読んで、また実行引数を読む。
@@ -131,7 +163,7 @@ func parseParameters(args ...string) (param *parameters, err error) {
 			if !os.IsNotExist(err) {
 				return nil, erro.Wrap(err)
 			}
-			log.Warn("Config file " + config + " is not exist.")
+			log.Warn("Config file " + config + " is not exist")
 		} else {
 			flags.Parse(strings.Fields(string(buff)))
 		}
@@ -139,14 +171,21 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.Parse(args[1:])
 
 	if l := len(flags.Args()); l > 0 {
-		log.Warn("Ignore extra parameters ", flags.Args(), ".")
+		log.Warn("Ignore extra parameters ", flags.Args())
 	}
 
 	return param, nil
 }
 
 func (param *parameters) LogFilePath() string       { return param.logPath }
-func (param *parameters) LogFileLimit() int64       { return 10 * (1 << 20) }
-func (param *parameters) LogFileNumber() int        { return 10 }
-func (param *parameters) LogFluentdAddress() string { return param.fluAddr }
-func (param *parameters) LogFluentdTag() string     { return param.fluTag }
+func (param *parameters) LogFileLimit() int64       { return param.logSize }
+func (param *parameters) LogFileNumber() int        { return param.logNum }
+func (param *parameters) LogFluentdAddress() string { return param.logAddr }
+func (param *parameters) LogFluentdTag() string     { return param.logTag }
+
+func (param *parameters) SocketPort() int    { return param.socPort }
+func (param *parameters) SocketPath() string { return param.socPath }
+
+// テスト用。
+// 使うときは手動で param.shutCh = make(chan struct{}, 5) する。
+func (param *parameters) ShutdownChannel() chan struct{} { return param.shutCh }

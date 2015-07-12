@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package proxy
 
-import (
-	"github.com/realglobe-Inc/go-lib/rglog"
+const (
+	tagX_edo_access_proxy_error = "X-Edo-Access-Proxy-Error"
+	tagX_edo_access_proxy_uri   = "X-Edo-Access-Proxy-Uri"
+	tagX_edo_auth_hash_function = "X-Edo-Auth-Hash-Function"
+	tagX_edo_auth_ta_error      = "X-Edo-Auth-Ta-Error"
+	tagX_edo_auth_ta_id         = "X-Edo-Auth-Ta-Id"
+	tagX_edo_auth_ta_token      = "X-Edo-Auth-Ta-Token"
+	tagX_edo_auth_ta_token_sign = "X-Edo-Auth-Ta-Token-Sign"
 )
-
-const logRoot = "github.com/realglobe-Inc"
-
-var log = rglog.Logger("github.com/realglobe-Inc/edo-access-proxy")

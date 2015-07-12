@@ -12,12 +12,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package session
 
 import (
-	"github.com/realglobe-Inc/go-lib/rglog"
+	"time"
 )
 
-const logRoot = "github.com/realglobe-Inc"
+// TA 間連携プロトコルのセッション。
 
-var log = rglog.Logger("github.com/realglobe-Inc/edo-access-proxy")
+type Element struct {
+	id string
+	// 有効期限。
+	exp time.Time
+	// 転送先ホスト。
+	toTa string
+}
+
+func New(id string, exp time.Time, toTa string) *Element {
+	return &Element{
+		id,
+		exp,
+		toTa,
+	}
+}
+
+// ID を返す。
+func (this *Element) Id() string {
+	return this.id
+}
+
+// 有効期限を返す。
+func (this *Element) Expires() time.Time {
+	return this.exp
+}
+
+// 転送先ホストを返す。
+func (this *Element) ToTa() string {
+	return this.toTa
+}

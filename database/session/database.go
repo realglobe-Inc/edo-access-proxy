@@ -12,12 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package session
 
 import (
-	"github.com/realglobe-Inc/go-lib/rglog"
+	"time"
 )
 
-const logRoot = "github.com/realglobe-Inc"
+// バックエンドのデータもこのプログラム専用の前提。
 
-var log = rglog.Logger("github.com/realglobe-Inc/edo-access-proxy")
+// セッションの格納庫。
+type Db interface {
+	// 取得。
+	GetByToTa(toTa string) (*Element, error)
+
+	// 保存。
+	// exp: 保存期限。この期間以降は Get できなくて良い。
+	Save(elem *Element, exp time.Time) error
+
+	// 削除。
+	Delete(elem *Element) error
+}

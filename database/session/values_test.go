@@ -12,12 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package session
 
-import (
-	"github.com/realglobe-Inc/go-lib/rglog"
+const (
+	test_id   = "Xewtmrlnu5HVDzem5rmyGzoe2edQjI"
+	test_toTa = "https://ta.example.org"
 )
-
-const logRoot = "github.com/realglobe-Inc"
-
-var log = rglog.Logger("github.com/realglobe-Inc/edo-access-proxy")
