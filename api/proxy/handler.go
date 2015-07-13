@@ -146,6 +146,7 @@ func (env *environment) tryForward(w http.ResponseWriter, r *http.Request, req *
 	} else if sess != nil {
 		// セッションがある。
 		log.Debug(env.logPref, "Session "+logutil.Mosaic(sess.Id())+" is exist")
+		server.DeleteCookie(r, env.sessLabel)
 		r.AddCookie(&http.Cookie{Name: env.sessLabel, Value: sess.Id()})
 	} else {
 		// セッションが無い。
@@ -227,6 +228,7 @@ func (env *environment) forward(w http.ResponseWriter, r *http.Request, req *req
 	// 署名できた。
 	log.Debug(env.logPref, "Signed")
 
+	server.DeleteCookie(r, env.sessLabel)
 	r.AddCookie(&http.Cookie{Name: env.sessLabel, Value: sessResp.sessionId()})
 	r.Header.Set(tagX_edo_auth_ta_id, env.selfId)
 	r.Header.Set(tagX_edo_auth_ta_token_sign, tokSig)
