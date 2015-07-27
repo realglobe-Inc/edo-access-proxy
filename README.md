@@ -23,13 +23,12 @@ TA 間連携プロトコルを代行するサーバープログラム。
 ## 1. インストール
 
 [go] が必要。
-[go] のインストールは http://golang.org/doc/install を参照のこと。
+go のインストールは http://golang.org/doc/install を参照のこと。
 
-[go] をインストールしたら、
+go をインストールしたら、
 
 ```shell
 go get github.com/realglobe-Inc/edo-access-proxy
-go install github.com/realglobe-Inc/edo-access-proxy
 ```
 
 適宜、依存ライブラリを `go get` すること。
@@ -38,10 +37,10 @@ go install github.com/realglobe-Inc/edo-access-proxy
 ## 2. 実行
 
 以下ではバイナリファイルが `${GOPATH}/bin/edo-access-proxy` にあるとする。
-パスが異なる場合は適宜置き換えること。
+パスが異なる場合は置き換えること。
 
 
-### 2.1. 鍵ファイルの設置
+### 2.1. 秘密鍵ファイルの設置
 
 称する TA の秘密鍵を、秘密鍵ディレクトリに置く。
 
@@ -57,7 +56,14 @@ go install github.com/realglobe-Inc/edo-access-proxy
 初期値はバイナリファイルのあるディレクトリにある key ディレクトリである。
 
 
-### 2.2. 起動
+### 2.2. DB の準備
+
+キャッシュやセッション用に [redis]、ID プロバイダ情報用に [mongodb] が必要になる。
+
+mongodb への ID プロバイダ情報の同期は別口で行う。
+
+
+### 2.3. 起動
 
 単独で実行できる。
 
@@ -66,7 +72,7 @@ ${GOPATH}/bin/edo-access-proxy
 ```
 
 
-### 2.3. 起動オプション
+### 2.4. 起動オプション
 
 |オプション名|初期値|値|
 |:--|:--|:--|
@@ -76,7 +82,7 @@ ${GOPATH}/bin/edo-access-proxy
 その他は `-h` で確認すること。
 
 
-### 2.4. デーモン化
+### 2.5. デーモン化
 
 単独ではデーモンとして実行できないため、[Supervisor] 等と組み合わせて行う。
 
@@ -106,3 +112,5 @@ Apache License, Version 2.0
 <!-- 参照 -->
 [Supervisor]: http://supervisord.org/
 [go]: http://golang.org/
+[mongodb]: https://www.mongodb.org/
+[redis]: http://redis.io/
