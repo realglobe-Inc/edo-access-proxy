@@ -226,7 +226,7 @@ func (this *environment) proxyWithSession(w http.ResponseWriter, r *http.Request
 		}
 		r.Body = buff
 	}
-	r.Header.Del(tagCookie)
+	server.DeleteCookie(r, tagEdo_cooperation)
 	return this.proxyThroughIdProvider(w, r, sess.ToTa(), acntTag, sess.Accounts())
 }
 
