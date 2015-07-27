@@ -41,7 +41,7 @@ go install github.com/realglobe-Inc/edo-access-proxy
 パスが異なる場合は適宜置き換えること。
 
 
-### 2.1. 鍵ファイルの設置
+### 2.1. 秘密鍵ファイルの設置
 
 称する TA の秘密鍵を、秘密鍵ディレクトリに置く。
 
