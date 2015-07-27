@@ -29,7 +29,6 @@ go をインストールしたら、
 
 ```shell
 go get github.com/realglobe-Inc/edo-access-proxy
-go install github.com/realglobe-Inc/edo-access-proxy
 ```
 
 適宜、依存ライブラリを `go get` すること。
