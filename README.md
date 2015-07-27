@@ -23,9 +23,9 @@ TA 間連携プロトコルを代行するサーバープログラム。
 ## 1. インストール
 
 [go] が必要。
-[go] のインストールは http://golang.org/doc/install を参照のこと。
+go のインストールは http://golang.org/doc/install を参照のこと。
 
-[go] をインストールしたら、
+go をインストールしたら、
 
 ```shell
 go get github.com/realglobe-Inc/edo-access-proxy
