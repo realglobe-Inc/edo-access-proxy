@@ -149,18 +149,22 @@ func serve(param *parameters) error {
 
 	idGen := rand.New(time.Minute)
 
-	var tr http.RoundTripper
+	var conn *http.Client
 	if param.noVeri {
-		// http.DefaultTransport を参考にした。
-		tr = &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
-			Dial: (&net.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 30 * time.Second,
-			}).Dial,
-			TLSHandshakeTimeout: 10 * time.Second,
-			TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+		conn = &http.Client{
+			// http.DefaultTransport を参考にした。
+			Transport: &http.Transport{
+				Proxy: http.ProxyFromEnvironment,
+				Dial: (&net.Dialer{
+					Timeout:   30 * time.Second,
+					KeepAlive: 30 * time.Second,
+				}).Dial,
+				TLSHandshakeTimeout: 10 * time.Second,
+				TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+			},
 		}
+	} else {
+		conn = http.DefaultClient
 	}
 
 	// バックエンドの準備完了。
@@ -191,7 +195,7 @@ func serve(param *parameters) error {
 		tokDb,
 		sessDb,
 		idGen,
-		tr,
+		conn,
 		param.debug,
 	))
 	routes[param.pathProx] = true

@@ -62,7 +62,7 @@ func newTestHandler(keys []jwk.Key, idps []idpdb.Element) *handler {
 		token.NewMemoryDb(),
 		session.NewMemoryDb(),
 		rand.New(time.Minute),
-		nil,
+		http.DefaultClient,
 		true,
 	).(*handler)
 }

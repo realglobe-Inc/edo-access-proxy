@@ -57,8 +57,7 @@ type handler struct {
 	tokDb  token.Db
 	sessDb session.Db
 	idGen  rand.Generator
-
-	tr http.RoundTripper
+	conn   *http.Client
 
 	debug bool
 }
@@ -79,7 +78,7 @@ func New(
 	tokDb token.Db,
 	sessDb session.Db,
 	idGen rand.Generator,
-	tr http.RoundTripper,
+	conn *http.Client,
 	debug bool,
 ) http.Handler {
 	return &handler{
@@ -98,13 +97,9 @@ func New(
 		tokDb,
 		sessDb,
 		idGen,
-		tr,
+		conn,
 		debug,
 	}
-}
-
-func (this *handler) httpClient() *http.Client {
-	return &http.Client{Transport: this.tr}
 }
 
 func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -197,7 +192,7 @@ func (this *environment) proxyWithSession(w http.ResponseWriter, r *http.Request
 
 	r.RequestURI = ""
 	server.LogRequest(level.DEBUG, r, this.debug, this.logPref)
-	resp, err := this.httpClient().Do(r)
+	resp, err := this.conn.Do(r)
 	if err != nil {
 		if isDestinationError(err) {
 			return erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusNotFound, err))
@@ -283,7 +278,7 @@ func (this *environment) proxyThroughIdProvider(w http.ResponseWriter, r *http.R
 
 	r.RequestURI = ""
 	server.LogRequest(level.DEBUG, r, this.debug, this.logPref)
-	resp, err := this.httpClient().Do(r)
+	resp, err := this.conn.Do(r)
 	if err != nil {
 		if isDestinationError(err) {
 			return erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusNotFound, err))
@@ -454,7 +449,7 @@ func (this *environment) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa
 	log.Debug(this.logPref, "Made main cooperation-from request")
 
 	server.LogRequest(level.DEBUG, r, this.debug, this.logPref)
-	resp, err := this.httpClient().Do(r)
+	resp, err := this.conn.Do(r)
 	if err != nil {
 		return "", "", erro.Wrap(err)
 	}
@@ -528,7 +523,7 @@ func (this *environment) getSubCoopCode(idp idpdb.Element, keys []jwk.Key, ref s
 	log.Debug(this.logPref, "Made sub cooperation-from request")
 
 	server.LogRequest(level.DEBUG, r, this.debug, this.logPref)
-	resp, err := this.httpClient().Do(r)
+	resp, err := this.conn.Do(r)
 	if err != nil {
 		return "", erro.Wrap(err)
 	}
