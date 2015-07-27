@@ -37,7 +37,7 @@ go get github.com/realglobe-Inc/edo-access-proxy
 ## 2. 実行
 
 以下ではバイナリファイルが `${GOPATH}/bin/edo-access-proxy` にあるとする。
-パスが異なる場合は適宜置き換えること。
+パスが異なる場合は置き換えること。
 
 
 ### 2.1. 秘密鍵ファイルの設置
