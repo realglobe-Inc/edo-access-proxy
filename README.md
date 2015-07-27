@@ -57,7 +57,14 @@ go install github.com/realglobe-Inc/edo-access-proxy
 初期値はバイナリファイルのあるディレクトリにある key ディレクトリである。
 
 
-### 2.2. 起動
+### 2.2. DB の準備
+
+キャッシュやセッション用に [redis]、ID プロバイダ情報用に [mongodb] が必要になる。
+
+mongodb への ID プロバイダ情報の同期は別口で行う。
+
+
+### 2.3. 起動
 
 単独で実行できる。
 
@@ -66,7 +73,7 @@ ${GOPATH}/bin/edo-access-proxy
 ```
 
 
-### 2.3. 起動オプション
+### 2.4. 起動オプション
 
 |オプション名|初期値|値|
 |:--|:--|:--|
@@ -76,7 +83,7 @@ ${GOPATH}/bin/edo-access-proxy
 その他は `-h` で確認すること。
 
 
-### 2.4. デーモン化
+### 2.5. デーモン化
 
 単独ではデーモンとして実行できないため、[Supervisor] 等と組み合わせて行う。
 
@@ -106,3 +113,5 @@ Apache License, Version 2.0
 <!-- 参照 -->
 [Supervisor]: http://supervisord.org/
 [go]: http://golang.org/
+[mongodb]: https://www.mongodb.org/
+[redis]: http://redis.io/
