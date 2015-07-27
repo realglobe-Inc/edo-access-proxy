@@ -57,6 +57,7 @@ func newTestHandler(keys []jwk.Key, idps []idpdb.Element) *handler {
 		20,
 		time.Minute,
 		1024,
+		10240,
 		keydb.NewMemoryDb(keys),
 		idpdb.NewMemoryDb(idps),
 		token.NewMemoryDb(),

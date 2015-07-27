@@ -56,6 +56,7 @@ func newTestParameter() (*parameters, error) {
 -jtiLen=20
 -jtiExpIn=1h
 -fileThres=8192
+-fileMax=100000
 -redTimeout=30s
 -redPoolSize=16
 -redPoolExpIn=1m

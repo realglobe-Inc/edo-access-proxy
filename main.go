@@ -190,6 +190,7 @@ func serve(param *parameters) error {
 		param.jtiLen,
 		param.jtiExpIn,
 		param.fileThres,
+		param.fileMax,
 		keyDb,
 		idpDb,
 		tokDb,

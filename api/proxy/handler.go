@@ -33,6 +33,7 @@ import (
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
 	"github.com/realglobe-Inc/edo-lib/rand"
+	"github.com/realglobe-Inc/edo-lib/reader"
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog/level"
@@ -51,6 +52,7 @@ type handler struct {
 	jtiLen      int
 	jtiExpIn    time.Duration
 	fileThres   int
+	fileMax     int
 
 	keyDb  keydb.Db
 	idpDb  idpdb.Db
@@ -73,6 +75,7 @@ func New(
 	jtiLen int,
 	jtiExpIn time.Duration,
 	fileThres int,
+	fileMax int,
 	keyDb keydb.Db,
 	idpDb idpdb.Db,
 	tokDb token.Db,
@@ -92,6 +95,7 @@ func New(
 		jtiLen,
 		jtiExpIn,
 		fileThres,
+		fileMax,
 		keyDb,
 		idpDb,
 		tokDb,
@@ -176,10 +180,10 @@ func (this *environment) serve(w http.ResponseWriter, r *http.Request) error {
 
 // セッションを利用して TA 間連携する。
 func (this *environment) proxyWithSession(w http.ResponseWriter, r *http.Request, sess *session.Element, acntTag string) (err error) {
-	var buff *buffer
+	var buff *reader.Resettable
 	if r.Body != nil {
-		buff = newBuffer(r.Body, this.fileThres, tmpPref)
-		defer buff.dispose()
+		buff = reader.NewResettable(r.Body, this.fileThres, tmpPref, this.fileMax)
+		defer buff.Dispose()
 		r.Body = buff
 	}
 
@@ -217,7 +221,7 @@ func (this *environment) proxyWithSession(w http.ResponseWriter, r *http.Request
 	log.Debug(this.logPref, "Deleted session "+logutil.Mosaic(sess.Id()))
 
 	if buff != nil {
-		if err := buff.lastRollback(); err != nil {
+		if err := buff.LastReset(); err != nil {
 			return erro.Wrap(err)
 		}
 		r.Body = buff

@@ -71,6 +71,7 @@ type parameters struct {
 	jtiExpIn time.Duration
 	// ボディをバッファするメモリサイズ。
 	fileThres int
+	fileMax   int
 
 	// バックエンドの指定。
 
@@ -160,6 +161,7 @@ func parseParameters(args ...string) (param *parameters, err error) {
 	flags.IntVar(&param.jtiLen, "jtiLen", 20, "JWT ID length")
 	flags.DurationVar(&param.jtiExpIn, "jtiExpIn", 6*time.Hour, "JWT expiration duration")
 	flags.IntVar(&param.fileThres, "fileThres", 1<<17 /* 128 KB */, "Threshold to use file buffer")
+	flags.IntVar(&param.fileMax, "fileMax", 1<<22 /* 4 MB */, "Max file buffer size")
 
 	flags.DurationVar(&param.redTimeout, "redTimeout", 30*time.Second, "redis timeout duration")
 	flags.IntVar(&param.redPoolSize, "redPoolSize", 10, "redis pool size")
