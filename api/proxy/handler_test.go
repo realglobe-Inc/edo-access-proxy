@@ -614,6 +614,7 @@ func TestSession(t *testing.T) {
 }
 
 // セッションを使ったけど拒否されたので、ID プロバイダ経由でやり直す正常系。
+// 別のセッションには影響しないことの検査。
 func TestRetry(t *testing.T) {
 	// ////////////////////////////////
 	// logutil.SetupConsole(logRoot, level.ALL)
@@ -647,6 +648,11 @@ func TestRetry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	extCook := &http.Cookie{
+		Name:  "cookie-name",
+		Value: "cookie-value",
+	}
+	r.AddCookie(extCook)
 
 	toTaServ.addResponse(http.StatusForbidden,
 		http.Header{"Content-Type": {"application/json"}, "X-Edo-Cooperation-Error": {"session expired"}},
@@ -731,6 +737,9 @@ func TestRetry(t *testing.T) {
 		} else if !bytes.Equal(buff, reqBody) {
 			t.Error(string(buff))
 			t.Fatal(string(reqBody))
+		} else if cooks := req.Cookies(); len(cooks) != 1 || cooks[0].Name != extCook.Name || cooks[0].Value != extCook.Value {
+			t.Error(cooks)
+			t.Fatal(extCook)
 		}
 	case <-time.After(time.Minute):
 		t.Fatal("no request")
