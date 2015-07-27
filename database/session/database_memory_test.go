@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package session
 
 import (
-	"github.com/realglobe-Inc/go-lib/rglog"
+	"testing"
 )
 
-const logRoot = "github.com/realglobe-Inc"
-
-var log = rglog.Logger(logRoot + "/edo-access-proxy")
+func TestMemoryDb(t *testing.T) {
+	testDb(t, NewMemoryDb())
+}

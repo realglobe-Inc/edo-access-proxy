@@ -12,12 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package proxy
 
 import (
-	"github.com/realglobe-Inc/go-lib/rglog"
+	"net"
+	"net/url"
+
+	"github.com/realglobe-Inc/go-lib/erro"
 )
 
-const logRoot = "github.com/realglobe-Inc"
-
-var log = rglog.Logger(logRoot + "/edo-access-proxy")
+// プロキシ先がおかしいかどうか。
+func isDestinationError(err error) bool {
+	for {
+		switch e := erro.Unwrap(err).(type) {
+		case *net.OpError:
+			return true
+		case *url.Error:
+			if e.Err != nil {
+				err = e.Err
+			} else {
+				return false
+			}
+		case *erro.Tracer:
+			err = e.Cause()
+		default:
+			return false
+		}
+	}
+}

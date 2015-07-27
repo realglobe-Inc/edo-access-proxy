@@ -17,7 +17,7 @@ limitations under the License.
 
 # edo-access-proxy
 
-[edo-auth] TA 認証を通過するための処理を代行するサーバープログラム。
+TA 間連携プロトコルを代行するサーバープログラム。
 
 
 ## 1. インストール
@@ -41,21 +41,20 @@ go install github.com/realglobe-Inc/edo-access-proxy
 パスが異なる場合は適宜置き換えること。
 
 
-### 2.1. 秘密鍵ファイルの設置
+### 2.1. 鍵ファイルの設置
 
-称する TA の秘密鍵を、&lt;称する TA の ID&gt;.key という名前で秘密鍵ディレクトリに置く。
+称する TA の秘密鍵を、秘密鍵ディレクトリに置く。
 
 ```
 <秘密鍵ディレクトリ>/
-├── <称する TA 1 の ID>.key
-├── <称する TA 2 の ID>.key
+├── <適当な名前>.json   // JWK 形式。
+├── <適当な名前>.key    // PEM 形式。
+├── <適当な名前>.pem    // PEM 形式。
 ...
 ```
 
-秘密鍵ディレクトリのパスは起動オプションで指定する。
-初期値はバイナリファイルのあるディレクトリにある private_keys ディレクトリである。
-
-称する TA の ID が / や % を含む場合は [URL エンコード]する。
+鍵ディレクトリのパスは起動オプションで指定する。
+初期値はバイナリファイルのあるディレクトリにある key ディレクトリである。
 
 
 ### 2.2. 起動
@@ -71,16 +70,10 @@ ${GOPATH}/bin/edo-access-proxy
 
 |オプション名|初期値|値|
 |:--|:--|:--|
-|-noVerify|`false`|転送先の SSL 証明書を検証しないかどうか|
-|-priKeyContPath|バイナリファイルのあるディレクトリの private_keys|秘密鍵ディレクトリのパス|
-|-socPort|16050|待ち受けポート番号|
-|-taId||標準で称する TA の ID|
+|-keyDbPath|実行ファイルのあるディレクトリの key|鍵ディレクトリのパス|
+|-noVeri|`false`|通信先の SSL 証明書を検証しないかどうか|
 
-その他のオプションは以下で確認すること。
-
-```shell
-${GOPATH}/bin/edo-access-proxy -h
-```
+その他は `-h` で確認すること。
 
 
 ### 2.4. デーモン化
@@ -90,175 +83,26 @@ ${GOPATH}/bin/edo-access-proxy -h
 
 ## 3. 動作仕様
 
-[edo-auth] TA 認証を通過するための処理を代行する。
+TA 間連携プロトコルを代行する。
 
 
-### 3.1. 概要
+### 3.1. エンドポイント
 
-リクエストを受け取ったら、指定された転送先 URI を [edo-auth] TA 認証を備えた TA であるとみなし、必要なら前処理を行い、リクエストヘッダを整備して転送する。
+|エンドポイント名|初期パス|機能|
+|:--|:--|:--|
+|TA 間連携プロキシ|/|[TA 間連携プロキシ機能](/api/proxy)を参照|
 
 
-### 3.2. リクエストの受け取り
+## 4. API
 
-転送先が指定された HTTP リクエストを受け取る。
+[GoDoc](http://godoc.org/github.com/realglobe-Inc/edo-access-proxy)
 
-転送先はヘッダ、もしくは、web プロキシ形式で指定する。
 
-以下では、edo-access-proxy を 16050 番ポート待ち受けで起動し、転送先 URI が https://to.example.org/api/self-destruction または http://to.example.org/api/self-destruction であるとして例を挙げる。
-
-
-#### 3.2.1. ヘッダによる転送先指定
-
-以下のヘッダを用いる。
-
-|ヘッダ名|値|
-|:--|:--|
-|X-Edo-Access-Proxy-Uri|転送先 URI|
-
-リクエスト URI は / とする。
-
-
-##### 3.2.1.1. ヘッダによる転送先指定の例
-
-```HTTP
-GET / HTTP/1.1
-Host: localhost:16050
-X-Edo-Access-Proxy-Uri: https://to.example.org/api/self-destruction
-```
-
-
-#### 3.2.2. web プロキシ形式の転送先指定
-
-転送先が HTTP の場合 (HTTPS でない場合)、リクエスト URI でも指定できる。
-主にテスト用。
-
-
-##### 3.2.2.1. web プロキシ形式の転送先指定の例
-
-```HTTP
-GET http://to.example.org/api/self-destruction HTTP/1.1
-Host: localhost:16050
-```
-
-
-#### 3.2.3. リクエストオプション
-
-複数の TA として使い分ける場合向けに、称する TA の ID をリクエストごとに指定できる。
-指定はヘッダで行う。
-
-|ヘッダ名|値|
-|:--|:--|
-|X-Edo-Ta-Id|称する TA の ID|
-
-
-### 3.3. 転送
-
-最多で 2 回、転送先にリクエストを送る。
-リクエストボディが小さい場合は、1 回だけで済むことがあるが、2 回送ることになったときはリクエストボディも 2 回送られる。
-リクエストボディが大きい場合は、必ず 2 回リクエストを送ることになるが、リクエストボディの転送は 1 回しか行わない。
-
-以下、動作順で小節を分ける。
-
-
-#### 3.3.1. 消費したリクエストヘッダの削除
-
-リクエストが以下のヘッダを持つなら、それらを削除する。
-
-|ヘッダ名|
-|:--|
-|X-Edo-Ta-Id|
-|X-Access-Proxy-Uri|
-
-
-#### 3.3.2. 確立済みセッションの利用
-
-称する TA として転送先 URI との間に既に確立されたセッションがあるなら、リクエストに以下の Cookie を加える。
-
-|Cookie ラベル|値|
-|:--|:--|
-|X-Edo-Auth-Ta-Session|セッション ID|
-
-
-#### 3.3.3. セッション検査への切り替え
-
-リクエストボディが一定サイズ以上ならば、リクエストメソッドを HEAD に変更し、リクエストボディを取り置く。
-
-
-#### 3.3.4. 1 回目の転送
-
-リクエストを転送する。
-
-
-#### 3.3.5. 1 回目の転送レスポンスの検査
-
-1 回目の転送のレスポンスが 401 Unauthorized ステータスかつ以下のヘッダと Set-Cookie を含むかどうかでその後の動作が変わる。
-
-|ヘッダ名|値|
-|:--|:--|
-|X-Edo-Auth-Ta-Token|何らかの文字列|
-|X-Edo-Auth-Ta-Error|"start new session"|
-
-|Set-Cookie ラベル|値|
-|:--|:--|
-|X-Edo-Auth-Ta-Session|セッション ID|
-
-
-401 かつ含む場合、認証ヘッダの追加を行ってから、2 回目の転送を行う。
-
-そうでない場合、1 回目がセッション検査なら、2 回目の転送を行う。
-セッション検査でなければ、転送レスポンスをリクエスト元に返送する。
-
-
-#### 3.3.6. 認証ヘッダの追加
-
-称する TA の秘密鍵で 1 回目の転送レスポンスの X-Edo-Auth-Ta-Token の値に署名し、リクエストに以下のヘッダと Cookie を加える。
-
-|ヘッダ名|値|
-|:--|:--|
-|X-Edo-Auth-Ta-Id|称する TA の ID|
-|X-Edo-Auth-Ta-Token-Sign|1 回目の転送レスポンスの X-Edo-Auth-Ta-Token の値への署名|
-|X-Edo-Auth-Hash-Function|X-Edo-Auth-Ta-Token-Sign の署名に使ったハッシュ関数|
-
-|Cookie|値|
-|:--|:--|
-|X-Edo-Auth-Ta-Session|1 回目の転送レスポンスの X-Edo-Auth-Ta-Session の値|
-
-
-#### 3.3.7. 2 回目の転送
-
-セッション検査のためにメソッドを HEAD にしたり、リクエストボディを取り置いていた場合は元に戻し、リクエストを転送する。
-
-
-#### 3.3.8. 2 回目の転送レスポンスの検査
-
-2 回目の転送のレスポンスが X-Edo-Auth-Ta-Error を含まなければ、称する TA と転送先に紐付けてセッションを保存する。
-
-
-#### 3.3.9. レスポンスの返送
-
-転送レスポンスをそのままリクエスト元に返送する。
-
-
-### 3.4. エラーレスポンス
-
-edo-access-proxy にてエラーが発生した場合、レスポンスに以下のヘッダを加える。
-
-|ヘッダ名|値|
-|:--|:--|
-|X-Edo-Access-Proxy-Error|適当なメッセージ|
-
-+ 転送先に届かない場合、404 Not Found を返す。
-+ 称する TA の秘密鍵が無い場合、403 Forbidden を返す。
-+ セッションの確立に失敗した場合、その時のレスポンスを返す。
-
-
-## 4. ライセンス
+## 5. ライセンス
 
 Apache License, Version 2.0
 
 
 <!-- 参照 -->
 [Supervisor]: http://supervisord.org/
-[URL エンコード]: http://tools.ietf.org/html/rfc1866#section-8.2.1
-[edo-auth]: https://github.com/realglobe-Inc/edo-auth/tree/development/
 [go]: http://golang.org/

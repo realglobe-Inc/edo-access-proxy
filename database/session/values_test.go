@@ -12,12 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package session
 
-import (
-	"github.com/realglobe-Inc/go-lib/rglog"
+const (
+	test_id     = "Xewtmrlnu5HVDzem5rmyGzoe2edQjI"
+	test_toTa   = "https://ta.example.org"
+	test_tokTag = "HcmmhWaXLE"
+	test_idp    = "https://ta.example.org"
+	test_acntId = "https://ta.example.org"
 )
 
-const logRoot = "github.com/realglobe-Inc"
-
-var log = rglog.Logger(logRoot + "/edo-access-proxy")
+var (
+	test_acnts = map[string]*Account{
+		"tester": NewMainAccount(test_tokTag),
+		"user":   NewSubAccount(test_idp, test_acntId),
+	}
+)

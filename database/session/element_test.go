@@ -12,12 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package session
 
 import (
-	"github.com/realglobe-Inc/go-lib/rglog"
+	"reflect"
+	"testing"
+	"time"
 )
 
-const logRoot = "github.com/realglobe-Inc"
+func TestElement(t *testing.T) {
+	exp := time.Now().Add(24 * time.Hour)
+	elem := New(test_id, exp, test_toTa, test_acnts)
 
-var log = rglog.Logger(logRoot + "/edo-access-proxy")
+	if elem.Id() != test_id {
+		t.Error(elem.Id())
+		t.Fatal(test_id)
+	} else if !elem.Expires().Equal(exp) {
+		t.Error(elem.Expires())
+		t.Fatal(exp)
+	} else if !reflect.DeepEqual(elem.Accounts(), test_acnts) {
+		t.Error(elem.Accounts())
+		t.Fatal(test_acnts)
+	}
+}
