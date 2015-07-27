@@ -204,7 +204,7 @@ func (this *environment) proxyWithSession(w http.ResponseWriter, r *http.Request
 	server.LogResponse(level.DEBUG, resp, this.debug, this.logPref)
 
 	if coopErr := resp.Header.Get(tagX_edo_cooperation_error); coopErr == "" {
-		return copyResponse(w, resp)
+		return server.CopyResponse(w, resp)
 	} else {
 		log.Warn(this.logPref, "Cooperation error: "+coopErr)
 	}
@@ -307,7 +307,7 @@ func (this *environment) proxyThroughIdProvider(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	return copyResponse(w, resp)
+	return server.CopyResponse(w, resp)
 }
 
 // 各種マップを作成する。
