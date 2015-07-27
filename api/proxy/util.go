@@ -15,9 +15,7 @@
 package proxy
 
 import (
-	"io"
 	"net"
-	"net/http"
 	"net/url"
 
 	"github.com/realglobe-Inc/go-lib/erro"
@@ -41,24 +39,4 @@ func isDestinationError(err error) bool {
 			return false
 		}
 	}
-}
-
-// プロキシ先からのレスポンスをリクエスト元へのレスポンスに写す。
-func copyResponse(w http.ResponseWriter, resp *http.Response) error {
-	// ヘッダフィールドのコピー。
-	for key, vals := range resp.Header {
-		for _, val := range vals {
-			w.Header().Add(key, val)
-		}
-	}
-
-	// ステータスのコピー。
-	w.WriteHeader(resp.StatusCode)
-
-	// ボディのコピー。
-	if _, err := io.Copy(w, resp.Body); err != nil {
-		return erro.Wrap(err)
-	}
-
-	return nil
 }

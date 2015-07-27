@@ -266,7 +266,7 @@ func testServer(t *testing.T, param *parameters, idpServ *testIdProvider, toTaSe
 			t.Fatal(err)
 		}
 		r.Header.Set("Connection", "close")
-		if _, err := (&http.Client{}).Do(r); err == nil {
+		if _, err := http.DefaultClient.Do(r); err == nil {
 			break
 		}
 
@@ -298,7 +298,7 @@ func testServer(t *testing.T, param *parameters, idpServ *testIdProvider, toTaSe
 		t.Fatal(err)
 	}
 	r.Header.Set("Connection", "close")
-	resp, err := (&http.Client{}).Do(r)
+	resp, err := http.DefaultClient.Do(r)
 	if err != nil {
 		t.Fatal(err)
 	}

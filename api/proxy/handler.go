@@ -33,6 +33,7 @@ import (
 	"github.com/realglobe-Inc/edo-lib/jwt"
 	logutil "github.com/realglobe-Inc/edo-lib/log"
 	"github.com/realglobe-Inc/edo-lib/rand"
+	"github.com/realglobe-Inc/edo-lib/reader"
 	"github.com/realglobe-Inc/edo-lib/server"
 	"github.com/realglobe-Inc/go-lib/erro"
 	"github.com/realglobe-Inc/go-lib/rglog/level"
@@ -51,14 +52,14 @@ type handler struct {
 	jtiLen      int
 	jtiExpIn    time.Duration
 	fileThres   int
+	fileMax     int
 
 	keyDb  keydb.Db
 	idpDb  idpdb.Db
 	tokDb  token.Db
 	sessDb session.Db
 	idGen  rand.Generator
-
-	tr http.RoundTripper
+	conn   *http.Client
 
 	debug bool
 }
@@ -74,12 +75,13 @@ func New(
 	jtiLen int,
 	jtiExpIn time.Duration,
 	fileThres int,
+	fileMax int,
 	keyDb keydb.Db,
 	idpDb idpdb.Db,
 	tokDb token.Db,
 	sessDb session.Db,
 	idGen rand.Generator,
-	tr http.RoundTripper,
+	conn *http.Client,
 	debug bool,
 ) http.Handler {
 	return &handler{
@@ -93,18 +95,15 @@ func New(
 		jtiLen,
 		jtiExpIn,
 		fileThres,
+		fileMax,
 		keyDb,
 		idpDb,
 		tokDb,
 		sessDb,
 		idGen,
-		tr,
+		conn,
 		debug,
 	}
-}
-
-func (this *handler) httpClient() *http.Client {
-	return &http.Client{Transport: this.tr}
 }
 
 func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -132,7 +131,7 @@ func (this *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer log.Info(logPref, "Handled proxy request")
 
 	if err := (&environment{this, logPref}).serve(w, r); err != nil {
-		w.Header().Set(tagX_access_proxy_error, erro.Unwrap(err).Error())
+		w.Header().Set(tagX_access_proxy_error, idperr.From(err).ErrorDescription())
 		idperr.RespondJson(w, r, erro.Wrap(err), logPref)
 		return
 	}
@@ -181,10 +180,10 @@ func (this *environment) serve(w http.ResponseWriter, r *http.Request) error {
 
 // セッションを利用して TA 間連携する。
 func (this *environment) proxyWithSession(w http.ResponseWriter, r *http.Request, sess *session.Element, acntTag string) (err error) {
-	var buff *buffer
+	var buff *reader.Resettable
 	if r.Body != nil {
-		buff = newBuffer(r.Body, this.fileThres, tmpPref)
-		defer buff.dispose()
+		buff = reader.NewResettable(r.Body, this.fileThres, tmpPref, this.fileMax)
+		defer buff.Dispose()
 		r.Body = buff
 	}
 
@@ -197,7 +196,7 @@ func (this *environment) proxyWithSession(w http.ResponseWriter, r *http.Request
 
 	r.RequestURI = ""
 	server.LogRequest(level.DEBUG, r, this.debug, this.logPref)
-	resp, err := this.httpClient().Do(r)
+	resp, err := this.conn.Do(r)
 	if err != nil {
 		if isDestinationError(err) {
 			return erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusNotFound, err))
@@ -209,7 +208,7 @@ func (this *environment) proxyWithSession(w http.ResponseWriter, r *http.Request
 	server.LogResponse(level.DEBUG, resp, this.debug, this.logPref)
 
 	if coopErr := resp.Header.Get(tagX_edo_cooperation_error); coopErr == "" {
-		return copyResponse(w, resp)
+		return server.CopyResponse(w, resp)
 	} else {
 		log.Warn(this.logPref, "Cooperation error: "+coopErr)
 	}
@@ -222,12 +221,12 @@ func (this *environment) proxyWithSession(w http.ResponseWriter, r *http.Request
 	log.Debug(this.logPref, "Deleted session "+logutil.Mosaic(sess.Id()))
 
 	if buff != nil {
-		if err := buff.lastRollback(); err != nil {
+		if err := buff.LastReset(); err != nil {
 			return erro.Wrap(err)
 		}
 		r.Body = buff
 	}
-	r.Header.Del(tagCookie)
+	server.DeleteCookie(r, tagEdo_cooperation)
 	return this.proxyThroughIdProvider(w, r, sess.ToTa(), acntTag, sess.Accounts())
 }
 
@@ -283,7 +282,7 @@ func (this *environment) proxyThroughIdProvider(w http.ResponseWriter, r *http.R
 
 	r.RequestURI = ""
 	server.LogRequest(level.DEBUG, r, this.debug, this.logPref)
-	resp, err := this.httpClient().Do(r)
+	resp, err := this.conn.Do(r)
 	if err != nil {
 		if isDestinationError(err) {
 			return erro.Wrap(idperr.New(idperr.Invalid_request, erro.Unwrap(err).Error(), http.StatusNotFound, err))
@@ -312,7 +311,7 @@ func (this *environment) proxyThroughIdProvider(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	return copyResponse(w, resp)
+	return server.CopyResponse(w, resp)
 }
 
 // 各種マップを作成する。
@@ -454,7 +453,7 @@ func (this *environment) getMainCoopCode(idp idpdb.Element, keys []jwk.Key, toTa
 	log.Debug(this.logPref, "Made main cooperation-from request")
 
 	server.LogRequest(level.DEBUG, r, this.debug, this.logPref)
-	resp, err := this.httpClient().Do(r)
+	resp, err := this.conn.Do(r)
 	if err != nil {
 		return "", "", erro.Wrap(err)
 	}
@@ -528,7 +527,7 @@ func (this *environment) getSubCoopCode(idp idpdb.Element, keys []jwk.Key, ref s
 	log.Debug(this.logPref, "Made sub cooperation-from request")
 
 	server.LogRequest(level.DEBUG, r, this.debug, this.logPref)
-	resp, err := this.httpClient().Do(r)
+	resp, err := this.conn.Do(r)
 	if err != nil {
 		return "", erro.Wrap(err)
 	}
