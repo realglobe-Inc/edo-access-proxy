@@ -15,13 +15,13 @@
 package proxy
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"reflect"
 	"testing"
 
 	"github.com/realglobe-Inc/edo-access-proxy/database/session"
-	"github.com/realglobe-Inc/edo-lib/base64url"
 )
 
 func TestRequest(t *testing.T) {
@@ -32,8 +32,8 @@ func TestRequest(t *testing.T) {
 	r.Header.Set("X-Access-Proxy-To", test_toTaId+test_path)
 	r.Header.Set("X-Access-Proxy-To-Id", test_toTaId)
 	r.Header.Set("X-Access-Proxy-Users",
-		base64url.EncodeToString([]byte(`{"alg":"none"}`))+"."+
-			base64url.EncodeToString([]byte(`{"`+test_acntTag+`":{"at_tag":"`+test_tokTag+`"},"`+
+		base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"none"}`))+"."+
+			base64.RawURLEncoding.EncodeToString([]byte(`{"`+test_acntTag+`":{"at_tag":"`+test_tokTag+`"},"`+
 				test_subAcnt1Tag+`":{"iss":"`+test_idpId+`","sub":"`+test_subAcnt1Id+`"}}`))+".")
 
 	req, err := parseRequest(r)
