@@ -793,7 +793,7 @@ func TestDenyInvalidTo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r.Header.Set("X-Access-Proxy-To", toTa.Id()+"a"+test_path)
+	r.Header.Set("X-Access-Proxy-To", toTa.Id()+"123"+test_path)
 
 	{
 		s, h, b, err := newTestSingleIdpResponse(hndl, idp, toTa.Id())
